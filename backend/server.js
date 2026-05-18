@@ -444,18 +444,18 @@ app.delete('/api/admin/routes/:id', requireAuth, (req, res) => {
 
 // ── ALERTS + STATS ────────────────────────────────────────────────
 app.get('/api/admin/alerts', requireAuth, (req, res) => {
-  const days = parseInt(req.query.days) || 30
-  db.getExpiryAlerts(days, (alerts) => res.json(alerts))
+  const days   = parseInt(req.query.days) || 30
+  const alerts = db.getExpiryAlerts(days)
+  res.json(alerts)
 })
-
 app.get('/api/admin/stats', requireAuth, (_req, res) => {
-  const stats = {}
-  let pending = 4
-  const done = () => { pending--; if (!pending) res.json(stats) }
-  db.get('SELECT COUNT(*) as c FROM bookings WHERE type="booking"', [], (_, r) => { stats.totalBookings  = r?.c||0; done() })
-  db.get('SELECT COUNT(*) as c FROM bookings WHERE type="quote"',   [], (_, r) => { stats.totalQuotes    = r?.c||0; done() })
-  db.get('SELECT COUNT(*) as c FROM drivers  WHERE status="active"',[], (_, r) => { stats.activeDrivers  = r?.c||0; done() })
-  db.get('SELECT COUNT(*) as c FROM vehicles WHERE status="active"',[], (_, r) => { stats.activeVehicles = r?.c||0; done() })
+  const stats = {
+    totalBookings:  db.prepare('SELECT COUNT(*) as c FROM bookings WHERE type="booking"').get().c,
+    totalQuotes:    db.prepare('SELECT COUNT(*) as c FROM bookings WHERE type="quote"').get().c,
+    activeDrivers:  db.prepare('SELECT COUNT(*) as c FROM drivers WHERE status="active"').get().c,
+    activeVehicles: db.prepare('SELECT COUNT(*) as c FROM vehicles WHERE status="active"').get().c,
+  }
+  res.json(stats)
 })
 
 // ── Error handler ──────────────────────────────────────────────────
