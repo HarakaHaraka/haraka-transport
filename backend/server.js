@@ -97,7 +97,13 @@ app.post('/api/auth/login', async (req, res) => {
     res.json({ token, expiresIn: '12h' })
   })
 })
-
+// Serve frontend in production
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, '../frontend/dist')))
+  app.get('*', (_req, res) => {
+    res.sendFile(path.join(__dirname, '../frontend/dist/index.html'))
+  })
+}
 // Health check
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', service: 'Haraka API', timestamp: new Date().toISOString() })
