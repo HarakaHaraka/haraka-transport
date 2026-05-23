@@ -18,13 +18,13 @@ export default function Navbar() {
     }
   }
 
-  const links = [
-    { label: 'Home',     path: '/'         },
-    { label: 'Services', path: '/#services' },
-    { label: 'SEN Care', path: '/#sen'      },
-    { label: 'About',    path: '/#about'    },
-    { label: 'Contact',  path: '/#contact'  },
-  ]
+const links = [
+  { label: 'Home',     path: '/'         },
+  { label: 'Services', path: '/#services' },
+  { label: 'SEN Care', path: '/#sen'      },
+  { label: 'Join Us',  path: '/join-us'   },
+  { label: 'Contact',  path: '/contact'   },
+]
 
   return (
     <nav className="navbar">

@@ -297,6 +297,26 @@ export default function HomePage() {
         <p style={{ fontSize: '0.65rem', color: '#94A3B8', marginTop: '48px', opacity: 0.7 }}>
           © {new Date().getFullYear()} Haraka Transport Ltd · TFL Licensed Private Hire · All Rights Reserved
         </p>
+        {/* Legal footer links */}
+<div style={{ display: 'flex', justifyContent: 'center', gap: '24px', marginTop: '24px', flexWrap: 'wrap', paddingTop: '24px', borderTop: '1px solid rgba(168,85,247,0.1)' }}>
+  {[
+    { label: 'Terms & Conditions', path: '/terms' },
+    { label: 'Refunds & Complaints', path: '/complaints' },
+    { label: 'Join Us', path: '/join-us' },
+    { label: 'Contact', path: '/contact' },
+    { label: 'Privacy Policy', path: '/terms' },
+  ].map(({ label, path }) => (
+    <button key={label} onClick={() => navigate(path)} style={{
+      background: 'none', border: 'none', cursor: 'pointer',
+      color: '#94A3B8', fontSize: '0.75rem', textDecoration: 'underline',
+      transition: 'color 0.2s',
+    }}
+    onMouseEnter={e => e.target.style.color = '#A855F7'}
+    onMouseLeave={e => e.target.style.color = '#94A3B8'}>
+      {label}
+    </button>
+  ))}
+</div>
       </section>
     </div>
   )
