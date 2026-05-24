@@ -150,31 +150,67 @@ function RoleCard({ role, selected, onSelect }) {
 }
 
 export default function JoinUsPage() {
-  const [selectedRole, setSelectedRole] = useState(null)
-  const [submitted, setSubmitted]       = useState(false)
-  const [submitting, setSubmitting]     = useState(false)
-  const [error, setError]               = useState(null)
+ const [selectedRole, setSelectedRole]       = useState(null)
+const [submitted, setSubmitted]             = useState(false)
+const [submitting, setSubmitting]           = useState(false)
+const [error, setError]                     = useState(null)
+const [uploadedFiles, setUploadedFiles]     = useState({})
+const [fileErrors, setFileErrors]           = useState({})
+const handleFileChange = (fieldName, file) => {
+  if (!file) return
+
+  // Validate type
+  const allowed = ['application/pdf', 'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
+  if (!allowed.includes(file.type)) {
+    setFileErrors(prev => ({ ...prev, [fieldName]: 'Only PDF and Word (.docx) files accepted' }))
+    return
+  }
+
+  // Validate size — 5MB max
+  if (file.size > 5 * 1024 * 1024) {
+    setFileErrors(prev => ({ ...prev, [fieldName]: 'File must be under 5MB' }))
+    return
+  }
+
+  setFileErrors(prev => ({ ...prev, [fieldName]: null }))
+  setUploadedFiles(prev => ({ ...prev, [fieldName]: file }))
+}
   const navigate = useNavigate()
 
   const { register, handleSubmit, formState: { errors } } = useForm()
 
-  const onSubmit = async (data) => {
-    if (!selectedRole) { setError('Please select a role above before submitting.'); return }
-    setSubmitting(true); setError(null)
-    try {
-      const res = await fetch(`${API}/api/recruitment`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...data, role: selectedRole }),
-      })
-      if (!res.ok) throw new Error()
-      setSubmitted(true)
-    } catch {
-      setError('Could not submit. Please email your application to [INSERT RECRUITMENT EMAIL]')
-    } finally {
-      setSubmitting(false)
-    }
+ const onSubmit = async (data) => {
+  if (!selectedRole) { setError('Please select a role above before submitting.'); return }
+  if (!uploadedFiles.cvFile) { setError('Please upload your CV before submitting.'); return }
+  setSubmitting(true); setError(null)
+
+  try {
+    // Build FormData to send files + text fields together
+    const formData = new FormData()
+
+    // Append all text fields
+    Object.entries({ ...data, role: selectedRole }).forEach(([k, v]) => {
+      if (v !== undefined && v !== null) formData.append(k, v)
+    })
+
+    // Append all uploaded files
+    Object.entries(uploadedFiles).forEach(([k, file]) => {
+      if (file) formData.append(k, file)
+    })
+
+    const res = await fetch(`${API}/api/recruitment`, {
+      method: 'POST',
+      body: formData,   // no Content-Type header — browser sets multipart boundary automatically
+    })
+    if (!res.ok) throw new Error()
+    setSubmitted(true)
+  } catch {
+    setError('Could not submit. Please email your application to [INSERT RECRUITMENT EMAIL]')
+  } finally {
+    setSubmitting(false)
   }
+}
 
   if (submitted) return (
     <div style={{ minHeight: '100vh', background: '#0F0A1E', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 24px', paddingTop: '90px' }}>
@@ -372,9 +408,58 @@ export default function JoinUsPage() {
             </Field>
 
             <Field label="Additional Information">
-              <textarea {...register('additionalInfo')} style={{ ...inp, minHeight: '100px', resize: 'vertical' }}
-                placeholder="Tell us anything else relevant to your application..." />
-            </Field>
+  <textarea {...register('additionalInfo')} style={{ ...inp, minHeight: '100px', resize: 'vertical' }}
+    placeholder="Tell us anything else relevant to your application..." />
+</Field>
+
+{/* Document uploads */}
+<div style={{ borderTop: '1px solid rgba(168,85,247,0.15)', paddingTop: '20px' }}>
+  <p style={{ fontSize: '0.85rem', fontWeight: 700, color: 'white', marginBottom: '6px' }}>
+    Document Uploads
+  </p>
+  <p style={{ fontSize: '0.78rem', color: '#94A3B8', marginBottom: '16px', lineHeight: 1.6 }}>
+    Upload copies of your certificates and documents. Accepted formats: PDF and Word (.docx) only. Max 5MB per file.
+  </p>
+
+  {[
+    { name: 'cvFile',             label: 'CV / Resume',                    required: true  },
+    { name: 'dbsFile',            label: 'DBS Certificate (if held)',       required: false },
+    { name: 'firstAidFile',       label: 'First Aid Certificate (if held)', required: false },
+    { name: 'safeguardingFile',   label: 'Safeguarding Certificate (if held)', required: false },
+    { name: 'pcoLicenceFile',     label: 'PCO Driver Licence (drivers only)', required: false },
+    { name: 'dvlaLicenceFile',    label: 'DVLA Driving Licence (drivers only)', required: false },
+    { name: 'senTrainingFile',    label: 'SEN Training Certificate (if held)', required: false },
+    { name: 'movingHandlingFile', label: 'Moving & Handling Certificate (if held)', required: false },
+    { name: 'otherDocFile',       label: 'Any Other Relevant Document',    required: false },
+  ].map(({ name, label, required }) => (
+    <div key={name} style={{ marginBottom: '14px' }}>
+      <label className="field-label">
+        {label}{required ? ' *' : ' (optional)'}
+      </label>
+      <input
+        type="file"
+        accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        onChange={(e) => handleFileChange(name, e.target.files[0])}
+        style={{
+          width: '100%',
+          background: 'rgba(255,255,255,0.06)',
+          border: '1px solid rgba(168,85,247,0.3)',
+          color: 'white', padding: '10px 14px',
+          borderRadius: '8px', fontSize: '0.85rem',
+          cursor: 'pointer',
+        }}
+      />
+      {fileErrors[name] && (
+        <p className="field-error">{fileErrors[name]}</p>
+      )}
+      {uploadedFiles[name] && (
+        <p style={{ fontSize: '0.75rem', color: '#22C55E', marginTop: '4px' }}>
+          ✓ {uploadedFiles[name].name} selected
+        </p>
+      )}
+    </div>
+  ))}
+</div>
 
             {/* SPROC declaration */}
             {(selectedRole === 'sen-driver' || selectedRole === 'passenger-assistant') && (

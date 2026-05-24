@@ -25,6 +25,30 @@ app.use(express.urlencoded({ extended: false }))
 // ── File uploads ───────────────────────────────────────────────────
 const UPLOAD_DIR = path.join(__dirname, 'uploads')
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true })
+  // Separate folder for recruitment documents
+const RECRUIT_DIR = path.join(__dirname, 'uploads', 'recruitment')
+if (!fs.existsSync(RECRUIT_DIR)) fs.mkdirSync(RECRUIT_DIR, { recursive: true })
+
+const recruitStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, RECRUIT_DIR),
+  filename:    (_req, file, cb) => {
+    const unique = `${Date.now()}-${Math.round(Math.random()*1e6)}`
+    cb(null, `${unique}-${file.originalname.replace(/\s+/g,'_')}`)
+  },
+})
+
+const recruitUpload = multer({
+  storage: recruitStorage,
+  limits: { fileSize: 5 * 1024 * 1024 },  // 5MB
+  fileFilter: (_req, file, cb) => {
+    const allowed = /pdf|doc|docx/i
+    const ext = path.extname(file.originalname)
+    if (!allowed.test(ext)) {
+      return cb(new Error('Only PDF and Word (.docx) files accepted'))
+    }
+    cb(null, true)
+  },
+})
 app.use('/uploads', express.static(UPLOAD_DIR))
 
 const storage = multer.diskStorage({
@@ -108,7 +132,94 @@ if (process.env.NODE_ENV === 'production') {
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', service: 'Haraka API', timestamp: new Date().toISOString() })
 })
+// POST /api/recruitment — public, accepts application + file uploads
+app.post('/api/recruitment',
+  recruitUpload.fields([
+    { name: 'cvFile',             maxCount: 1 },
+    { name: 'dbsFile',            maxCount: 1 },
+    { name: 'firstAidFile',       maxCount: 1 },
+    { name: 'safeguardingFile',   maxCount: 1 },
+    { name: 'pcoLicenceFile',     maxCount: 1 },
+    { name: 'dvlaLicenceFile',    maxCount: 1 },
+    { name: 'senTrainingFile',    maxCount: 1 },
+    { name: 'movingHandlingFile', maxCount: 1 },
+    { name: 'otherDocFile',       maxCount: 1 },
+  ]),
+  (req, res) => {
+    const d = req.body
+    const f = req.files || {}
+    const get = (field) => f[field]?.[0]?.filename || null
 
+    if (!d.firstName || !d.lastName || !d.email || !d.phone) {
+      return res.status(400).json({ error: 'First name, last name, email and phone required' })
+    }
+    if (!get('cvFile')) {
+      return res.status(400).json({ error: 'CV upload is required' })
+    }
+
+    db.run(
+      `INSERT INTO bookings
+       (type, firstName, lastName, email, phone,
+        serviceInterest, journeyDetails, referralSource,
+        specialRequirements)
+       VALUES (?,?,?,?,?,?,?,?,?)`,
+      ['recruitment', d.firstName, d.lastName, d.email, d.phone,
+       d.role, JSON.stringify({
+         address: d.address, rightToWork: d.rightToWork,
+         employmentStatus: d.employmentStatus, availability: d.availability,
+         pcoLicence: d.pcoLicence, dvlaLicence: d.dvlaLicence,
+         dvlaPoints: d.dvlaPoints, dbsNumber: d.dbsNumber,
+         dbsUpdateService: d.dbsUpdateService,
+         safeguardingTraining: d.safeguardingTraining,
+         firstAid: d.firstAid, senExperience: d.senExperience,
+         movingHandling: d.movingHandling, autismAwareness: d.autismAwareness,
+         sprocDeclaration: d.sproc_declaration,
+         additionalInfo: d.additionalInfo,
+         // Document filenames
+         cvFile:             get('cvFile'),
+         dbsFile:            get('dbsFile'),
+         firstAidFile:       get('firstAidFile'),
+         safeguardingFile:   get('safeguardingFile'),
+         pcoLicenceFile:     get('pcoLicenceFile'),
+         dvlaLicenceFile:    get('dvlaLicenceFile'),
+         senTrainingFile:    get('senTrainingFile'),
+         movingHandlingFile: get('movingHandlingFile'),
+         otherDocFile:       get('otherDocFile'),
+       }),
+       d.referralSource, d.declaration],
+      function(err) {
+        if (err) return res.status(500).json({ error: err.message })
+        console.log(`  ◆  New recruitment application #${this.lastID}: ${d.firstName} ${d.lastName} — ${d.role}`)
+        res.status(201).json({ id: this.lastID, success: true })
+      }
+    )
+  }
+)
+
+// GET /api/admin/recruitment — admin only, list all applications
+app.get('/api/admin/recruitment', requireAuth, (req, res) => {
+  const { search } = req.query
+  let sql = `SELECT * FROM bookings WHERE type='recruitment'`
+  const params = []
+  if (search) {
+    sql += ` AND (firstName LIKE ? OR lastName LIKE ? OR email LIKE ? OR phone LIKE ?)`
+    const q = `%${search}%`
+    params.push(q, q, q, q)
+  }
+  sql += ' ORDER BY createdAt DESC'
+  db.all(sql, params, (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message })
+    // Parse journeyDetails JSON for each row
+    rows = rows.map(r => {
+      try { r.details = JSON.parse(r.journeyDetails) } catch { r.details = {} }
+      return r
+    })
+    res.json(rows)
+  })
+})
+
+// Serve recruitment documents (admin only)
+app.use('/recruitment-docs', requireAuth, express.static(RECRUIT_DIR))
 // ════════════════════════════════════════
 // ADMIN ROUTES (all require login)
 // ════════════════════════════════════════

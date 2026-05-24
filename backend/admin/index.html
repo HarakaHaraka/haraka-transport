@@ -112,6 +112,8 @@ tr:hover td{background:rgba(168,85,247,0.04)}
   .content{padding:16px}
 }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.0.3/tesseract.min.js"></script>
 </head>
 <body>
 
@@ -151,6 +153,7 @@ tr:hover td{background:rgba(168,85,247,0.04)}
     <button class="tab-btn" onclick="showTab('drivers')">👤 Drivers</button>
     <button class="tab-btn" onclick="showTab('vehicles')">🚗 Vehicles</button>
     <button class="tab-btn" onclick="showTab('routes')">🗺 Routes</button>
+    <button class="tab-btn" onclick="showTab('recruitment')">👥 Recruitment</button>
   </div>
 
   <div class="content">
@@ -314,6 +317,32 @@ tr:hover td{background:rgba(168,85,247,0.04)}
         <tbody id="rt-tbody"></tbody>
       </table></div></div>
     </div>
+    <!-- ── RECRUITMENT ── -->
+<div id="tab-recruitment" style="display:none">
+  <div class="section-head">
+    <h2>Job Applications</h2>
+    <span id="rec-count" style="font-size:0.8rem;color:#94A3B8"></span>
+  </div>
+  <div class="controls">
+    <input id="rec-search" placeholder="Search name, email, phone…" oninput="loadRecruitment()"/>
+  </div>
+  <div class="tbl-wrap"><div class="tbl-scroll"><table>
+    <thead><tr>
+      <th>Ref</th><th>Date</th><th>Name</th><th>Email</th><th>Phone</th>
+      <th>Role Applied</th><th>CV</th><th>Documents</th><th>Actions</th>
+    </tr></thead>
+    <tbody id="rec-tbody"></tbody>
+  </table></div></div>
+</div>
+
+<!-- Recruitment detail modal -->
+<div class="overlay" id="rec-modal-overlay" onclick="closeOverlay(event,'rec-modal-overlay')">
+  <div class="modal" style="max-width:800px" id="rec-modal">
+    <button class="close-x" onclick="document.getElementById('rec-modal-overlay').classList.remove('open')">✕</button>
+    <h2 id="rec-modal-title">Application Detail</h2>
+    <div id="rec-modal-body"></div>
+  </div>
+</div>
 
   </div><!-- /content -->
 </div><!-- /app -->
@@ -512,23 +541,23 @@ async function api(method, path, body=null, isForm=false) {
 }
 
 /* ════ TABS ════ */
-const tabs = ['dashboard','bookings','quotes','drivers','vehicles','routes']
+const tabs = ['dashboard','bookings','quotes','drivers','vehicles','routes','recruitment']
 function showTab(name) {
   tabs.forEach(t => {
     document.getElementById(`tab-${t}`).style.display = t===name ? 'block' : 'none'
     document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', tabs[i]===name))
   })
-  if (name==='bookings') loadBookings()
-  if (name==='quotes')   loadQuotes()
-  if (name==='drivers')  loadDrivers()
-  if (name==='vehicles') loadVehicles()
-  if (name==='routes')   loadRoutes()
+  if (name==='bookings')    loadBookings()
+  if (name==='quotes')      loadQuotes()
+  if (name==='drivers')     loadDrivers()
+  if (name==='vehicles')    loadVehicles()
+  if (name==='routes')      loadRoutes()
+  if (name==='recruitment') loadRecruitment()
 }
 
 /* ════ LOAD ALL ════ */
 async function loadAll() {
   loadStats(); loadAlerts(); loadRecentBookings()
-  // pre-load drivers and vehicles for dropdowns
   allDrivers  = await api('GET','/api/admin/drivers')
   allVehicles = await api('GET','/api/admin/vehicles')
   allBookings = await api('GET','/api/admin/bookings?type=booking')
@@ -983,6 +1012,19 @@ async function exportCSV() {
     rows = await api('GET','/api/admin/vehicles')
     headers = ['Registration','Make','Model','Year','Type','Seats','WAV','MOT Expiry','Insurance','PCO Plate Expiry','Status']
     mapFn = v => [v.registration,v.make,v.model,v.year,v.vehicleType,v.seats,v.isWAV?'Yes':'No',v.motExpiry,v.insuranceExpiry,v.pcoPlateExpiry,v.status]
+    } else if (tab.includes('recruit')) {
+  rows = await api('GET','/api/admin/recruitment')
+  headers = ['Ref','Date','Name','Email','Phone','Role','CV','Right to Work','Availability']
+  mapFn = r => [
+    `REC-${String(r.id).padStart(5,'0')}`,
+    new Date(r.createdAt).toLocaleDateString('en-GB'),
+    `${r.firstName} ${r.lastName}`,
+    r.email, r.phone,
+    r.serviceInterest,
+    r.details?.cvFile ? 'Uploaded' : 'Missing',
+    r.details?.rightToWork || '—',
+    r.details?.availability || '—',
+  ]
   } else {
     rows = await api('GET','/api/admin/routes')
     headers = ['Route','Date','Time','Passenger','Pick-up','Drop-off','Driver','Vehicle','Service','Fare','Status']
@@ -1002,6 +1044,132 @@ function closeOverlay(e, id) { if(e.target===document.getElementById(id)) docume
 
 // Auto-refresh alerts every 5 minutes
 setInterval(loadAlerts, 300000)
+/* ════ RECRUITMENT ════ */
+async function loadRecruitment() {
+  const search = document.getElementById('rec-search')?.value || ''
+  try {
+    const rows = await api('GET', `/api/admin/recruitment?search=${encodeURIComponent(search)}`)
+    document.getElementById('rec-count').textContent = `${rows.length} applications`
+
+    document.getElementById('rec-tbody').innerHTML = rows.length === 0
+      ? '<tr class="empty-row"><td colspan="9">No applications yet</td></tr>'
+      : rows.map(r => {
+          const docs = r.details || {}
+          const docLinks = [
+            { key: 'cvFile',             label: 'CV'          },
+            { key: 'dbsFile',            label: 'DBS'         },
+            { key: 'firstAidFile',       label: 'First Aid'   },
+            { key: 'safeguardingFile',   label: 'Safeguarding'},
+            { key: 'pcoLicenceFile',     label: 'PCO'         },
+            { key: 'dvlaLicenceFile',    label: 'DVLA'        },
+            { key: 'senTrainingFile',    label: 'SEN'         },
+            { key: 'movingHandlingFile', label: 'M&H'         },
+            { key: 'otherDocFile',       label: 'Other'       },
+          ].filter(d => docs[d.key])
+
+          return `<tr>
+            <td style="color:#A855F7;font-weight:700;font-size:0.78rem">REC-${String(r.id).padStart(5,'0')}</td>
+            <td style="font-size:0.75rem;color:#94A3B8">${new Date(r.createdAt).toLocaleDateString('en-GB')}</td>
+            <td><strong style="color:rgba(255,255,255,0.9)">${r.firstName} ${r.lastName}</strong></td>
+            <td style="color:#94A3B8;font-size:0.78rem">${r.email}</td>
+            <td style="color:#94A3B8;font-size:0.78rem">${r.phone}</td>
+            <td style="font-size:0.78rem">${r.serviceInterest || '—'}</td>
+            <td style="font-size:0.75rem">
+              ${docs.cvFile
+                ? `<a class="file-link" href="${API}/recruitment-docs/${docs.cvFile}" target="_blank">📄 Download CV</a>`
+                : '<span style="color:#F87171">Missing</span>'}
+            </td>
+            <td style="font-size:0.75rem">
+              ${docLinks.filter(d => d.key !== 'cvFile').map(d =>
+                `<a class="file-link" href="${API}/recruitment-docs/${docs[d.key]}" target="_blank">${d.label}</a>`
+              ).join(' ')}
+              ${docLinks.filter(d => d.key !== 'cvFile').length === 0 ? '<span style="color:#94A3B8">None uploaded</span>' : ''}
+            </td>
+            <td>
+              <button class="btn btn-sm btn-outline" onclick="openRecruitmentDetail(${r.id})">View</button>
+            </td>
+          </tr>`
+        }).join('')
+  } catch(e) {
+    document.getElementById('rec-tbody').innerHTML = `<tr class="empty-row"><td colspan="9">${e.message}</td></tr>`
+  }
+}
+
+async function openRecruitmentDetail(id) {
+  const rows = await api('GET', '/api/admin/recruitment')
+  const r    = rows.find(x => x.id === id)
+  if (!r) return
+  const d    = r.details || {}
+
+  document.getElementById('rec-modal-title').textContent =
+    `REC-${String(r.id).padStart(5,'0')} — ${r.firstName} ${r.lastName}`
+
+  const docFields = [
+    { key: 'cvFile',             label: 'CV'                    },
+    { key: 'dbsFile',            label: 'DBS Certificate'       },
+    { key: 'firstAidFile',       label: 'First Aid Certificate' },
+    { key: 'safeguardingFile',   label: 'Safeguarding Cert'     },
+    { key: 'pcoLicenceFile',     label: 'PCO Licence'           },
+    { key: 'dvlaLicenceFile',    label: 'DVLA Licence'          },
+    { key: 'senTrainingFile',    label: 'SEN Training'          },
+    { key: 'movingHandlingFile', label: 'Moving & Handling'     },
+    { key: 'otherDocFile',       label: 'Other Document'        },
+  ]
+
+  const infoRows = [
+    ['Reference',         `REC-${String(r.id).padStart(5,'0')}`],
+    ['Name',              `${r.firstName} ${r.lastName}`],
+    ['Email',             r.email],
+    ['Phone',             r.phone],
+    ['Role Applied',      r.serviceInterest],
+    ['Address',           d.address || '—'],
+    ['Right to Work',     d.rightToWork || '—'],
+    ['Employment Status', d.employmentStatus || '—'],
+    ['Availability',      d.availability || '—'],
+    ['PCO Licence No.',   d.pcoLicence || '—'],
+    ['DVLA Licence No.',  d.dvlaLicence || '—'],
+    ['DVLA Points',       d.dvlaPoints || '—'],
+    ['DBS Number',        d.dbsNumber || '—'],
+    ['DBS Update Service',d.dbsUpdateService || '—'],
+    ['Safeguarding',      d.safeguardingTraining || '—'],
+    ['First Aid',         d.firstAid || '—'],
+    ['SEN Experience',    d.senExperience || '—'],
+    ['Moving & Handling', d.movingHandling || '—'],
+    ['Autism Awareness',  d.autismAwareness || '—'],
+    ['Referral Source',   r.referralSource || '—'],
+    ['SPROC Declaration', d.sprocDeclaration ? 'Confirmed' : '—'],
+    ['Additional Info',   d.additionalInfo || '—'],
+    ['Applied',           new Date(r.createdAt).toLocaleString('en-GB')],
+  ]
+
+  document.getElementById('rec-modal-body').innerHTML = `
+    <div class="detail-grid" style="margin-bottom:20px">
+      ${infoRows.map(([k,v]) => `
+        <div class="detail-row">
+          <span class="dk">${k}</span>
+          <span class="dv">${v}</span>
+        </div>`).join('')}
+    </div>
+
+    <div style="padding:14px;background:rgba(168,85,247,0.06);border:1px solid rgba(168,85,247,0.2);border-radius:10px">
+      <p style="font-size:0.7rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#A855F7;margin-bottom:12px">
+        Uploaded Documents
+      </p>
+      ${docFields.map(({ key, label }) => `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+          <span style="font-size:0.82rem;color:#94A3B8">${label}</span>
+          ${d[key]
+            ? `<a class="file-link" href="${API}/recruitment-docs/${d[key]}" target="_blank"
+                style="padding:5px 12px;background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.3);border-radius:4px">
+                📄 Download
+               </a>`
+            : '<span style="font-size:0.75rem;color:#555">Not uploaded</span>'
+          }
+        </div>`).join('')}
+    </div>`
+
+  document.getElementById('rec-modal-overlay').classList.add('open')
+}
 </script>
 </body>
 </html>
