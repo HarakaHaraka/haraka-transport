@@ -154,6 +154,7 @@ tr:hover td{background:rgba(168,85,247,0.04)}
     <button class="tab-btn" onclick="showTab('vehicles')">🚗 Vehicles</button>
     <button class="tab-btn" onclick="showTab('routes')">🗺 Routes</button>
     <button class="tab-btn" onclick="showTab('recruitment')">👥 Recruitment</button>
+    <button class="tab-btn" onclick="showTab('scanner')">🔍 Doc Scanner</button>
   </div>
 
   <div class="content">
@@ -346,6 +347,96 @@ tr:hover td{background:rgba(168,85,247,0.04)}
 
   </div><!-- /content -->
 </div><!-- /app -->
+<!-- ── DOCUMENT SCANNER TAB ── -->
+<div id="tab-scanner" style="display:none">
+  <div class="section-head">
+    <h2>🔍 AI Document Scanner</h2>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-gold btn-sm" onclick="exportScannedXLSX()">↓ Export Excel</button>
+      <button class="btn btn-outline btn-sm" onclick="clearScanned()">Clear All</button>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px">
+
+    <!-- Upload panel -->
+    <div class="card">
+      <p style="font-size:0.7rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#A855F7;margin-bottom:12px">
+        Upload Document to Scan
+      </p>
+
+      <div id="drop-zone" style="border:2px dashed rgba(168,85,247,0.4);border-radius:12px;padding:32px;text-align:center;cursor:pointer;transition:all 0.3s;margin-bottom:16px"
+        onclick="document.getElementById('scan-file-input').click()"
+        ondragover="event.preventDefault();this.style.borderColor='#A855F7'"
+        ondragleave="this.style.borderColor='rgba(168,85,247,0.4)'"
+        ondrop="handleScanDrop(event)">
+        <div style="font-size:2.5rem;margin-bottom:10px">📄</div>
+        <p style="color:#A855F7;font-weight:600;font-size:0.9rem;margin-bottom:6px">Click or drag file here</p>
+        <p style="color:#94A3B8;font-size:0.78rem">PDF or Word (.docx) · Max 10MB</p>
+      </div>
+      <input type="file" id="scan-file-input" accept=".pdf,.doc,.docx" style="display:none" onchange="handleScanFile(this.files[0])"/>
+
+      <div id="scan-file-preview" style="display:none;padding:12px;background:rgba(168,85,247,0.08);border:1px solid rgba(168,85,247,0.2);border-radius:8px;margin-bottom:14px">
+        <p id="scan-file-name" style="color:#A855F7;font-size:0.85rem;font-weight:600"></p>
+        <p id="scan-file-size" style="color:#94A3B8;font-size:0.75rem;margin-top:2px"></p>
+      </div>
+
+      <div class="field">
+        <label>Document Category</label>
+        <select id="scan-category" style="width:100%">
+          <option value="driver">Driver Document (PCO, DVLA, DBS)</option>
+          <option value="vehicle">Vehicle Document (MOT, Insurance, PCO Plate)</option>
+          <option value="recruitment">Recruitment / CV</option>
+          <option value="general">General / Other</option>
+        </select>
+      </div>
+
+      <button class="btn btn-primary" style="width:100%;margin-top:8px" onclick="runScan()" id="scan-btn">
+        🔍 Scan & Extract Data
+      </button>
+
+      <div id="scan-status" style="display:none;margin-top:12px;padding:12px;border-radius:8px;font-size:0.82rem;text-align:center"></div>
+    </div>
+
+    <!-- Extracted data panel -->
+    <div class="card">
+      <p style="font-size:0.7rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#A855F7;margin-bottom:12px">
+        Extracted Data — Review & Edit
+      </p>
+      <div id="extracted-fields" style="min-height:200px">
+        <div style="text-align:center;padding:40px;color:#94A3B8">
+          <div style="font-size:2rem;margin-bottom:8px">⬅</div>
+          <p style="font-size:0.85rem">Upload and scan a document to see extracted data here</p>
+        </div>
+      </div>
+      <div id="save-actions" style="display:none;margin-top:16px;display:none;gap:10px">
+        <button class="btn btn-primary" onclick="saveExtractedRecord()" style="flex:1">Save to Database</button>
+        <button class="btn btn-gold" onclick="addToExportQueue()" style="flex:1">Add to Export Queue</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Export queue / scanned records table -->
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <p style="font-size:0.7rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#A855F7">
+        Scanned Records Queue
+      </p>
+      <span id="queue-count" style="font-size:0.78rem;color:#94A3B8">0 records</span>
+    </div>
+    <div class="tbl-wrap"><div class="tbl-scroll">
+      <table>
+        <thead><tr>
+          <th>#</th><th>Category</th><th>Name / Entity</th><th>Licence / Ref No.</th>
+          <th>Expiry Date</th><th>DOB</th><th>Vehicle Reg</th><th>Key Details</th><th>Actions</th>
+        </tr></thead>
+        <tbody id="queue-tbody">
+          <tr class="empty-row"><td colspan="9">No records scanned yet</td></tr>
+        </tbody>
+      </table>
+    </div></div>
+  </div>
+</div>
 
 <!-- ════ MODALS ════ -->
 
@@ -541,7 +632,7 @@ async function api(method, path, body=null, isForm=false) {
 }
 
 /* ════ TABS ════ */
-const tabs = ['dashboard','bookings','quotes','drivers','vehicles','routes','recruitment']
+const tabs = ['dashboard','bookings','quotes','drivers','vehicles','routes','recruitment','scanner']
 function showTab(name) {
   tabs.forEach(t => {
     document.getElementById(`tab-${t}`).style.display = t===name ? 'block' : 'none'
@@ -553,6 +644,7 @@ function showTab(name) {
   if (name==='vehicles')    loadVehicles()
   if (name==='routes')      loadRoutes()
   if (name==='recruitment') loadRecruitment()
+  if (name==='scanner') initScanner()
 }
 
 /* ════ LOAD ALL ════ */
@@ -1169,6 +1261,624 @@ async function openRecruitmentDetail(id) {
     </div>`
 
   document.getElementById('rec-modal-overlay').classList.add('open')
+}
+/* ════ DOCUMENT SCANNER ════ */
+let scanFile       = null
+let scannedRecords = []
+let currentExtracted = null
+
+function initScanner() {
+  // Nothing needed on init
+}
+
+function handleScanDrop(e) {
+  e.preventDefault()
+  document.getElementById('drop-zone').style.borderColor = 'rgba(168,85,247,0.4)'
+  const file = e.dataTransfer.files[0]
+  if (file) handleScanFile(file)
+}
+
+function handleScanFile(file) {
+  if (!file) return
+  const allowed = ['application/pdf','application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
+  if (!allowed.includes(file.type) && !file.name.match(/\.(pdf|doc|docx)$/i)) {
+    alert('Only PDF and Word (.docx) files accepted')
+    return
+  }
+  if (file.size > 10 * 1024 * 1024) {
+    alert('File must be under 10MB')
+    return
+  }
+  scanFile = file
+  document.getElementById('scan-file-preview').style.display = 'block'
+  document.getElementById('scan-file-name').textContent = file.name
+  document.getElementById('scan-file-size').textContent =
+    `${(file.size / 1024).toFixed(1)} KB · ${file.type || 'document'}`
+}
+
+function setStatus(msg, type='info') {
+  const el = document.getElementById('scan-status')
+  el.style.display = 'block'
+  el.style.background = type==='error' ? 'rgba(248,113,113,0.1)'
+                      : type==='success'? 'rgba(34,197,94,0.1)'
+                      : 'rgba(168,85,247,0.1)'
+  el.style.border = `1px solid ${type==='error'?'rgba(248,113,113,0.3)':type==='success'?'rgba(34,197,94,0.3)':'rgba(168,85,247,0.3)'}`
+  el.style.color  = type==='error'?'#F87171':type==='success'?'#22C55E':'#A855F7'
+  el.textContent  = msg
+}
+
+async function runScan() {
+  if (!scanFile) { alert('Please select a document first'); return }
+  const category = document.getElementById('scan-category').value
+  const btn = document.getElementById('scan-btn')
+  btn.disabled = true
+  btn.textContent = '⏳ Reading…'
+  setStatus('Reading document…', 'info')
+
+  try {
+    const isPDF = scanFile.type === 'application/pdf' || scanFile.name.endsWith('.pdf')
+    let   text  = ''
+
+    if (isPDF) {
+      // ── METHOD 1: PDF.js text extraction (digital PDFs) ──
+      setStatus('Extracting text from PDF…', 'info')
+      text = await extractPDFText(scanFile)
+
+      // ── METHOD 2: If PDF.js got very little text, try Tesseract OCR ──
+      if (text.trim().length < 80) {
+        setStatus('PDF appears to be a scanned image — running OCR…', 'info')
+        text = await extractWithTesseract(scanFile)
+      }
+    } else {
+      // Word doc — manual form fallback
+      setStatus('Word document detected — please fill the fields manually below.', 'info')
+      text = `[Word document: ${scanFile.name}]`
+    }
+
+    // ── METHOD 3: If still very little text — show manual form ──
+    if (!text || text.trim().length < 30) {
+      setStatus('Could not extract text automatically. Manual entry form shown below.', 'info')
+      renderManualForm(category)
+      btn.disabled    = false
+      btn.textContent = '🔍 Scan & Extract Data'
+      return
+    }
+
+    // ── Parse extracted text into fields ──
+    setStatus('Parsing extracted data…', 'info')
+    const extracted = parseExtractedText(text, category)
+    const hasData   = Object.values(extracted).some(v => v && v !== null)
+
+    if (!hasData) {
+      setStatus('Text found but could not identify key fields. Manual entry form shown — paste or type the values.', 'info')
+      renderManualForm(category, text)
+    } else {
+      const foundCount = Object.values(extracted).filter(v => v).length
+      setStatus(`✓ Extracted ${foundCount} fields automatically. Review below — red fields were not found.`, 'success')
+      currentExtracted = { ...extracted, _category: category, _filename: scanFile.name, _scannedAt: new Date().toISOString() }
+      renderExtractedFields(extracted, category)
+    }
+
+  } catch(err) {
+    setStatus(`Could not read document automatically. Manual entry form shown below.`, 'info')
+    renderManualForm(category)
+  } finally {
+    btn.disabled    = false
+    btn.textContent = '🔍 Scan & Extract Data'
+  }
+}
+// ── PDF.js text extraction ──────────────────────────────────────
+async function extractPDFText(file) {
+  const pdfjsLib = window['pdfjs-dist/build/pdf']
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
+
+  const arrayBuffer = await file.arrayBuffer()
+  const pdf         = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
+  let   fullText    = ''
+
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page    = await pdf.getPage(i)
+    const content = await page.getTextContent()
+    fullText     += content.items.map(item => item.str).join(' ') + '\n'
+  }
+  return fullText
+}
+
+// ── Tesseract.js OCR ────────────────────────────────────────────
+async function extractWithTesseract(file) {
+  setStatus('Running OCR — this may take 20-40 seconds for the first scan…', 'info')
+  const url    = URL.createObjectURL(file)
+  const result = await Tesseract.recognize(url, 'eng', {
+    logger: m => {
+      if (m.status === 'recognizing text') {
+        setStatus(`OCR progress: ${Math.round(m.progress * 100)}%…`, 'info')
+      }
+    }
+  })
+  URL.revokeObjectURL(url)
+  return result.data.text
+}
+
+// ── Text parser — extracts fields using regex patterns ──────────
+function parseExtractedText(text, category) {
+  const t = text.replace(/\s+/g, ' ')
+
+  // ── Common patterns ──
+  const patterns = {
+    // Names
+    fullName: [
+      /(?:name|full name|surname|applicant)[:\s]+([A-Z][a-z]+ [A-Z][a-z]+(?:\s[A-Z][a-z]+)?)/i,
+      /([A-Z]{2,}(?:\s[A-Z]{2,})+)/,
+    ],
+    dateOfBirth: [
+      /(?:date of birth|d\.o\.b|dob|born)[:\s]+(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})/i,
+      /(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{4})/,
+    ],
+    address: [
+      /(?:address|residing at|resident)[:\s]+([A-Za-z0-9\s,]+(?:London|SW|SE|NW|NE|E\d|W\d|N\d|EC|WC)[A-Za-z0-9\s]+)/i,
+    ],
+    email: [
+      /([a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,})/,
+    ],
+    phone: [
+      /(?:tel|phone|mobile|contact)[:\s]*([\d\s\+\-\(\)]{10,})/i,
+      /(07\d{9}|\+44\s?\d{10})/,
+    ],
+    nationalInsuranceNumber: [
+      /(?:NI|N\.I\.|national insurance)[:\s#]*([A-Z]{2}\s?\d{6}\s?[A-Z])/i,
+      /([A-Z]{2}\s?\d{6}\s?[A-Z])/,
+    ],
+
+    // PCO / TFL Licence
+    pcoLicenceNumber: [
+      /(?:PCO|private hire|operator licence|TfL)[:\s#]*(\d{5,12})/i,
+      /licence\s*(?:no|number|#)[:\s]*(\d{6,12})/i,
+    ],
+    pcoLicenceExpiry: [
+      /(?:PCO|private hire licence)[^.]*(?:expir|valid until|expires?)[:\s]+(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})/i,
+    ],
+
+    // DVLA
+    dvlaLicenceNumber: [
+      /(?:driving licence|DVLA|driver(?:'s)? licence)[:\s#]*([A-Z]{5}\d{6}[A-Z]{2}\d[A-Z]{2})/i,
+      /([A-Z]{5}\d{6}[A-Z0-9]{3}[A-Z]{2})/,
+    ],
+    dvlaLicenceExpiry: [
+      /(?:driving licence|DVLA)[^.]*(?:expir|valid until)[:\s]+(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})/i,
+      /4b[:\s]+(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})/i,
+    ],
+    dvlaLicenceIssueDate: [
+      /(?:issue date|issued|date issued)[:\s]+(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})/i,
+      /4a[:\s]+(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})/i,
+    ],
+    dvlaEntitlements: [
+      /(?:entitlements?|categories|permitted to drive)[:\s]+([A-Z0-9\s,\/+]+)/i,
+      /(?:9\.|categories?)[:\s]+([A-Z][0-9]?(?:,\s*[A-Z][0-9]?)+)/i,
+    ],
+
+    // DBS
+    dbsCertificateNumber: [
+      /(?:DBS|disclosure)[^.]*(?:no|number|certificate)[:\s#]*(\d{12}|\d{6,15})/i,
+      /certificate\s*(?:no|number)[:\s]*(\d{10,15})/i,
+    ],
+    dbsIssueDate: [
+      /(?:DBS|disclosure)[^.]*(?:date|issued)[:\s]+(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})/i,
+    ],
+    dbsExpiryDate: [
+      /(?:DBS|disclosure)[^.]*(?:expir|valid until)[:\s]+(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})/i,
+    ],
+    dbsLevel: [
+      /(?:enhanced|standard|basic)\s+(?:DBS|disclosure)/i,
+    ],
+
+    // Vehicle
+    vehicleRegistration: [
+      /(?:registration|reg|vehicle reg|number plate)[:\s]+([A-Z]{2}\d{2}\s?[A-Z]{3})/i,
+      /([A-Z]{2}\d{2}\s?[A-Z]{3})/,
+    ],
+    make: [
+      /(?:make|manufacturer|vehicle make)[:\s]+([A-Z][a-zA-Z]+)/i,
+    ],
+    model: [
+      /(?:model)[:\s]+([A-Z][a-zA-Z0-9\s]+)/i,
+    ],
+    year: [
+      /(?:year|year of manufacture)[:\s]+(20\d{2}|19\d{2})/i,
+      /(20\d{2})/,
+    ],
+    colour: [
+      /(?:colour|color)[:\s]+([A-Za-z]+)/i,
+    ],
+    vin: [
+      /(?:VIN|chassis|vehicle identification)[:\s#]+([A-HJ-NPR-Z0-9]{17})/i,
+    ],
+    motExpiryDate: [
+      /(?:MOT)[^.]*(?:expir|valid until|expires?)[:\s]+(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})/i,
+      /(?:test expir)[:\s]+(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})/i,
+    ],
+    motCertificateNumber: [
+      /(?:MOT|test)[^.]*(?:certificate|cert)[^.]*(?:no|number)[:\s#]*([A-Z0-9\-]{6,20})/i,
+    ],
+    taxExpiryDate: [
+      /(?:road tax|vehicle tax|tax)[^.]*(?:expir|due|valid until)[:\s]+(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})/i,
+    ],
+    insurancePolicyNumber: [
+      /(?:policy|insurance policy)[^.]*(?:no|number|#)[:\s]+([A-Z0-9\-\/]{5,25})/i,
+    ],
+    insuranceExpiryDate: [
+      /(?:insurance|policy)[^.]*(?:expir|valid until|renewal)[:\s]+(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})/i,
+    ],
+    insuredName: [
+      /(?:insured|policyholder|named driver)[:\s]+([A-Z][a-z]+ [A-Z][a-z]+)/i,
+    ],
+    insuranceCompany: [
+      /(?:insurer|insurance company|underwriter)[:\s]+([A-Za-z\s&]+(?:Insurance|Assurance|Mutual|Group))/i,
+    ],
+    pcoPlateNumber: [
+      /(?:PCO plate|vehicle licence|plate no)[:\s#]+([A-Z0-9]{4,12})/i,
+    ],
+    pcoPlateExpiry: [
+      /(?:plate|vehicle licence)[^.]*(?:expir|valid until)[:\s]+(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})/i,
+    ],
+  }
+
+  // ── Run patterns and return best match ──
+  const results = {}
+  const categoryFields = {
+    driver:      ['fullName','dateOfBirth','address','nationalInsuranceNumber','email','phone','pcoLicenceNumber','pcoLicenceExpiry','dvlaLicenceNumber','dvlaLicenceExpiry','dvlaLicenceIssueDate','dvlaEntitlements','dbsCertificateNumber','dbsIssueDate','dbsExpiryDate','dbsLevel'],
+    vehicle:     ['vehicleRegistration','make','model','year','colour','vin','motExpiryDate','motCertificateNumber','taxExpiryDate','insurancePolicyNumber','insuranceExpiryDate','insuredName','insuranceCompany','pcoPlateNumber','pcoPlateExpiry'],
+    recruitment: ['fullName','dateOfBirth','address','email','phone','nationalInsuranceNumber','pcoLicenceNumber','dvlaLicenceNumber','dvlaLicenceExpiry','dbsCertificateNumber','dbsIssueDate','dbsExpiryDate'],
+    general:     ['fullName','dateOfBirth','address','email','phone','vehicleRegistration','pcoLicenceNumber','dvlaLicenceNumber','dbsCertificateNumber'],
+  }
+
+  const fields = categoryFields[category] || categoryFields.general
+
+  fields.forEach(field => {
+    const fieldPatterns = patterns[field] || []
+    for (const pattern of fieldPatterns) {
+      const match = t.match(pattern)
+      if (match) {
+        results[field] = match[1]?.trim() || match[0]?.trim()
+        break
+      }
+    }
+    if (!results[field]) results[field] = null
+  })
+
+  return results
+}
+
+// ── Manual entry form fallback ──────────────────────────────────
+function renderManualForm(category, rawText = '') {
+  const fieldSets = {
+    driver: [
+      ['fullName','Full Name'],
+      ['dateOfBirth','Date of Birth'],
+      ['address','Address'],
+      ['nationalInsuranceNumber','NI Number'],
+      ['pcoLicenceNumber','PCO Licence Number'],
+      ['pcoLicenceExpiry','PCO Licence Expiry'],
+      ['dvlaLicenceNumber','DVLA Licence Number'],
+      ['dvlaLicenceExpiry','DVLA Licence Expiry'],
+      ['dvlaLicenceIssueDate','DVLA Issue Date'],
+      ['dvlaEntitlements','DVLA Entitlements'],
+      ['dbsCertificateNumber','DBS Certificate No.'],
+      ['dbsIssueDate','DBS Issue Date'],
+      ['dbsExpiryDate','DBS Expiry Date'],
+      ['dbsLevel','DBS Level'],
+    ],
+    vehicle: [
+      ['vehicleRegistration','Vehicle Registration'],
+      ['make','Make'],
+      ['model','Model'],
+      ['year','Year'],
+      ['colour','Colour'],
+      ['vin','VIN / Chassis No.'],
+      ['motExpiryDate','MOT Expiry'],
+      ['motCertificateNumber','MOT Certificate No.'],
+      ['taxExpiryDate','Road Tax Expiry'],
+      ['insurancePolicyNumber','Insurance Policy No.'],
+      ['insuranceExpiryDate','Insurance Expiry'],
+      ['insuredName','Insured Name'],
+      ['insuranceCompany','Insurance Company'],
+      ['pcoPlateNumber','PCO Plate Number'],
+      ['pcoPlateExpiry','PCO Plate Expiry'],
+    ],
+    recruitment: [
+      ['fullName','Full Name'],
+      ['dateOfBirth','Date of Birth'],
+      ['address','Address'],
+      ['email','Email'],
+      ['phone','Phone'],
+      ['nationalInsuranceNumber','NI Number'],
+      ['pcoLicenceNumber','PCO Licence Number'],
+      ['dvlaLicenceNumber','DVLA Licence Number'],
+      ['dvlaLicenceExpiry','DVLA Licence Expiry'],
+      ['dbsCertificateNumber','DBS Certificate No.'],
+      ['dbsIssueDate','DBS Issue Date'],
+      ['dbsExpiryDate','DBS Expiry Date'],
+    ],
+    general: [
+      ['fullName','Full Name / Entity Name'],
+      ['dateOfBirth','Date of Birth'],
+      ['address','Address'],
+      ['email','Email'],
+      ['phone','Phone'],
+      ['vehicleRegistration','Vehicle Registration'],
+      ['pcoLicenceNumber','Licence / Reference Number'],
+      ['dvlaLicenceNumber','DVLA Licence Number'],
+      ['dbsCertificateNumber','DBS Certificate No.'],
+    ],
+  }
+
+  const fields = fieldSets[category] || fieldSets.general
+  const empty  = {}
+  fields.forEach(([k]) => empty[k] = null)
+  currentExtracted = { ...empty, _category: category, _filename: scanFile?.name || '', _scannedAt: new Date().toISOString() }
+
+  const container = document.getElementById('extracted-fields')
+
+  container.innerHTML = `
+    ${rawText ? `
+      <div style="margin-bottom:14px">
+        <p style="font-size:0.65rem;text-transform:uppercase;letter-spacing:0.08em;color:#F59E0B;margin-bottom:6px">
+          Extracted Raw Text — Use to Copy Values Below
+        </p>
+        <textarea readonly style="width:100%;height:90px;background:rgba(245,158,11,0.05);border:1px solid rgba(245,158,11,0.2);color:#94A3B8;padding:10px;border-radius:8px;font-size:0.72rem;resize:vertical;font-family:monospace">${rawText.slice(0, 600)}${rawText.length > 600 ? '…' : ''}</textarea>
+      </div>` : ''}
+    ${fields.map(([key, label]) => `
+      <div style="display:grid;grid-template-columns:160px 1fr;gap:8px;align-items:center;padding:7px 10px;border-radius:6px;background:rgba(255,255,255,0.02)">
+        <span style="font-size:0.65rem;text-transform:uppercase;letter-spacing:0.08em;color:rgba(168,85,247,0.7)">${label}</span>
+        <input
+          data-key="${key}"
+          value=""
+          placeholder="Enter ${label}"
+          style="background:rgba(255,255,255,0.05);border:1px solid rgba(168,85,247,0.2);color:white;padding:7px 10px;border-radius:6px;font-size:0.82rem;outline:none;width:100%;font-family:Arial"
+          oninput="updateExtracted('${key}', this.value)"
+        />
+      </div>`).join('')}
+  `
+
+  document.getElementById('save-actions').style.display = 'flex'
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload  = () => resolve(reader.result.split(',')[1])
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
+}
+
+const FIELD_LABELS = {
+  fullName:              'Full Name',
+  dateOfBirth:           'Date of Birth',
+  address:               'Address',
+  nationalInsuranceNumber:'NI Number',
+  email:                 'Email',
+  phone:                 'Phone',
+  nationality:           'Nationality',
+  rightToWork:           'Right to Work',
+  pcoLicenceNumber:      'PCO Licence Number',
+  pcoLicenceExpiry:      'PCO Licence Expiry',
+  dvlaLicenceNumber:     'DVLA Licence Number',
+  dvlaLicenceExpiry:     'DVLA Licence Expiry',
+  dvlaLicenceIssueDate:  'DVLA Issue Date',
+  dvlaEntitlements:      'DVLA Entitlements',
+  dvlaPoints:            'DVLA Points',
+  dbsCertificateNumber:  'DBS Certificate No.',
+  dbsIssueDate:          'DBS Issue Date',
+  dbsExpiryDate:         'DBS Expiry Date',
+  dbsLevel:              'DBS Level',
+  dbsUpdateService:      'DBS Update Service',
+  vehicleRegistration:   'Vehicle Registration',
+  make:                  'Make',
+  model:                 'Model',
+  year:                  'Year',
+  colour:                'Colour',
+  engineSize:            'Engine Size',
+  fuelType:              'Fuel Type',
+  vin:                   'VIN / Chassis No.',
+  motExpiryDate:         'MOT Expiry',
+  motCertificateNumber:  'MOT Certificate No.',
+  taxExpiryDate:         'Road Tax Expiry',
+  insurancePolicyNumber: 'Insurance Policy No.',
+  insuranceExpiryDate:   'Insurance Expiry',
+  insuredName:           'Insured Name',
+  insuranceCompany:      'Insurance Company',
+  pcoPlateNumber:        'PCO Plate Number',
+  pcoPlateExpiry:        'PCO Plate Expiry',
+  currentEmployer:       'Current Employer',
+  currentRole:           'Current Role',
+  yearsExperience:       'Years Experience',
+  qualifications:        'Qualifications',
+  safeguardingTraining:  'Safeguarding Training',
+  firstAidCertificate:   'First Aid Certificate',
+  firstAidExpiry:        'First Aid Expiry',
+  senExperience:         'SEN Experience',
+  movingHandlingCert:    'Moving & Handling Cert',
+  languages:             'Languages',
+  references:            'References',
+  documentType:          'Document Type',
+  issuingAuthority:      'Issuing Authority',
+  documentDate:          'Document Date',
+  notes:                 'Notes / Other Info',
+}
+
+function renderExtractedFields(data, category) {
+  const container = document.getElementById('extracted-fields')
+  const entries   = Object.entries(data).filter(([k]) => !k.startsWith('_'))
+
+  container.innerHTML = entries.map(([key, value]) => {
+    const label    = FIELD_LABELS[key] || key.replace(/([A-Z])/g, ' $1').trim()
+    const isDate   = key.toLowerCase().includes('date') || key.toLowerCase().includes('expiry')
+    const isEmpty  = !value || value === 'null'
+
+    return `<div style="display:grid;grid-template-columns:160px 1fr;gap:8px;align-items:center;padding:7px 10px;border-radius:6px;background:${isEmpty?'rgba(248,113,113,0.05)':'rgba(255,255,255,0.02)'}">
+      <span style="font-size:0.65rem;text-transform:uppercase;letter-spacing:0.08em;color:${isEmpty?'#F87171':'rgba(168,85,247,0.7)'}">${label}</span>
+      <input
+        data-key="${key}"
+        value="${isEmpty ? '' : (value || '')}"
+        placeholder="${isEmpty ? '⚠ Not found in document' : ''}"
+        type="${isDate ? 'text' : 'text'}"
+        style="background:${isEmpty?'rgba(248,113,113,0.08)':'rgba(255,255,255,0.05)'};border:1px solid ${isEmpty?'rgba(248,113,113,0.2)':'rgba(168,85,247,0.2)'};color:white;padding:7px 10px;border-radius:6px;font-size:0.82rem;outline:none;width:100%;font-family:Arial"
+        oninput="updateExtracted('${key}', this.value)"
+      />
+    </div>`
+  }).join('')
+
+  document.getElementById('save-actions').style.display = 'flex'
+}
+
+function updateExtracted(key, value) {
+  if (currentExtracted) currentExtracted[key] = value
+}
+
+function addToExportQueue() {
+  if (!currentExtracted) return
+  scannedRecords.push({ ...currentExtracted, _id: Date.now() })
+  renderQueue()
+  setStatus(`✓ Added to export queue. Total: ${scannedRecords.length} records.`, 'success')
+}
+
+async function saveExtractedRecord() {
+  if (!currentExtracted) return
+  const d = currentExtracted
+  const category = d._category
+
+  // Save to appropriate table based on category
+  if (category === 'driver') {
+    await api('POST', '/api/admin/drivers', {
+      firstName:        (d.fullName||'').split(' ')[0] || 'Unknown',
+      lastName:         (d.fullName||'').split(' ').slice(1).join(' ') || 'Unknown',
+      phone:            d.phone || '[ENTER PHONE]',
+      email:            d.email || '',
+      address:          d.address || '',
+      dateOfBirth:      d.dateOfBirth || '',
+      dvlaLicenceNumber:d.dvlaLicenceNumber || '',
+      dvlaExpiry:       d.dvlaLicenceExpiry || '',
+      pcoLicenceNumber: d.pcoLicenceNumber || '',
+      pcoExpiry:        d.pcoLicenceExpiry || '',
+      dbsNumber:        d.dbsCertificateNumber || '',
+      dbsExpiry:        d.dbsExpiryDate || '',
+      dbsIssueDate:     d.dbsIssueDate || '',
+      notes:            d.notes || '',
+    })
+    setStatus('✓ Driver record saved to Drivers database', 'success')
+    loadDrivers()
+  } else if (category === 'vehicle') {
+    await api('POST', '/api/admin/vehicles', {
+      registration:    d.vehicleRegistration || '[ENTER REG]',
+      make:            d.make || 'Unknown',
+      model:           d.model || 'Unknown',
+      year:            d.year || '',
+      colour:          d.colour || '',
+      motExpiry:       d.motExpiryDate || '',
+      insuranceExpiry: d.insuranceExpiryDate || '',
+      taxExpiry:       d.taxExpiryDate || '',
+      pcoPlateNumber:  d.pcoPlateNumber || '',
+      pcoPlateExpiry:  d.pcoPlateExpiry || '',
+      notes:           `VIN: ${d.vin||'—'} | Insurer: ${d.insuranceCompany||'—'} | Policy: ${d.insurancePolicyNumber||'—'}`,
+    })
+    setStatus('✓ Vehicle record saved to Vehicles database', 'success')
+    loadVehicles()
+  } else {
+    // Save as general record note
+    setStatus('✓ Added to export queue (general records save via export)', 'success')
+  }
+
+  addToExportQueue()
+}
+
+function renderQueue() {
+  const tbody = document.getElementById('queue-tbody')
+  document.getElementById('queue-count').textContent = `${scannedRecords.length} records`
+
+  if (!scannedRecords.length) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="9">No records scanned yet</td></tr>'
+    return
+  }
+
+  tbody.innerHTML = scannedRecords.map((r, i) => {
+    const name  = r.fullName || r.insuredName || '—'
+    const ref   = r.pcoLicenceNumber || r.dvlaLicenceNumber || r.dbsCertificateNumber ||
+                  r.vehicleRegistration || r.insurancePolicyNumber || '—'
+    const expiry= r.pcoLicenceExpiry || r.dvlaLicenceExpiry || r.dbsExpiryDate ||
+                  r.motExpiryDate || r.insuranceExpiryDate || '—'
+    const dob   = r.dateOfBirth || '—'
+    const reg   = r.vehicleRegistration || '—'
+    const keys  = Object.entries(r)
+      .filter(([k,v]) => !k.startsWith('_') && v && v !== 'null')
+      .slice(0, 3)
+      .map(([k,v]) => `${FIELD_LABELS[k]||k}: ${v}`)
+      .join(' · ')
+
+    return `<tr>
+      <td style="color:#A855F7;font-weight:700">${i+1}</td>
+      <td><span class="badge b-${r._category==='driver'?'confirmed':r._category==='vehicle'?'pending':'scheduled'}">${r._category}</span></td>
+      <td style="color:rgba(255,255,255,0.9);font-weight:600">${name}</td>
+      <td style="font-family:monospace;color:#F59E0B;font-size:0.82rem">${ref}</td>
+      <td style="font-size:0.82rem;${expiry!=='—'&&new Date(expiry)<new Date()?'color:#F87171':''}">${expiry}</td>
+      <td style="font-size:0.78rem;color:#94A3B8">${dob}</td>
+      <td style="font-family:monospace;color:#A855F7;font-size:0.82rem">${reg}</td>
+      <td style="font-size:0.75rem;color:#94A3B8;max-width:200px;overflow:hidden;text-overflow:ellipsis">${keys}</td>
+      <td>
+        <button class="btn btn-sm btn-danger" onclick="removeFromQueue(${r._id})">✕</button>
+      </td>
+    </tr>`
+  }).join('')
+}
+
+function removeFromQueue(id) {
+  scannedRecords = scannedRecords.filter(r => r._id !== id)
+  renderQueue()
+}
+
+function clearScanned() {
+  if (!confirm('Clear all scanned records from the queue?')) return
+  scannedRecords = []
+  currentExtracted = null
+  scanFile = null
+  document.getElementById('scan-file-preview').style.display = 'none'
+  document.getElementById('scan-status').style.display = 'none'
+  document.getElementById('extracted-fields').innerHTML =
+    '<div style="text-align:center;padding:40px;color:#94A3B8"><div style="font-size:2rem;margin-bottom:8px">⬅</div><p style="font-size:0.85rem">Upload and scan a document to see extracted data here</p></div>'
+  document.getElementById('save-actions').style.display = 'none'
+  renderQueue()
+}
+
+function exportScannedXLSX() {
+  if (!scannedRecords.length) { alert('No scanned records to export'); return }
+
+  // Build CSV with all fields as columns
+  const allKeys = [...new Set(
+    scannedRecords.flatMap(r => Object.keys(r).filter(k => !k.startsWith('_')))
+  )]
+
+  const headers = allKeys.map(k => FIELD_LABELS[k] || k)
+  const rows    = scannedRecords.map(r =>
+    allKeys.map(k => `"${(r[k]||'').toString().replace(/"/g,'""')}"`)
+  )
+
+  // Add metadata columns
+  const fullHeaders = ['#', 'Category', 'Document File', 'Scanned At', ...headers]
+  const fullRows    = scannedRecords.map((r, i) => [
+    i + 1,
+    r._category || '',
+    r._filename  || '',
+    r._scannedAt ? new Date(r._scannedAt).toLocaleString('en-GB') : '',
+    ...allKeys.map(k => r[k] || ''),
+  ].map(v => `"${String(v).replace(/"/g,'""')}"`))
+
+  const csv  = [fullHeaders.map(h=>`"${h}"`), ...fullRows].map(r => r.join(',')).join('\n')
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const a    = document.createElement('a')
+  a.href     = URL.createObjectURL(blob)
+  a.download = `haraka-scanned-documents-${new Date().toISOString().split('T')[0]}.csv`
+  a.click()
 }
 </script>
 </body>
