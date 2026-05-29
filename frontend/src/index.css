@@ -196,3 +196,17 @@ body {
 @media (max-width: 768px) {
   .navbar { padding: 14px 20px; }
 }
+@media (max-width: 768px) {
+  .glass-card { border-radius: 12px; }
+  .step-bar   { gap: 4px; }
+  .path-card  { padding: 22px 18px; }
+}
+
+@media (max-width: 480px) {
+  body { font-size: 15px; }
+  .btn-gold, .btn-primary, .btn-outline {
+    padding: 14px 24px;
+    font-size: 0.88rem;
+  }
+  .badge { font-size: 0.65rem; padding: 3px 10px; }
+}

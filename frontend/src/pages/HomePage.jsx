@@ -31,12 +31,12 @@ function Counter({ target, suffix = '', label }) {
 }
 
 const SERVICES = [
-  { icon: '🧒', title: 'SEN School & Care Transport', colour: '#F59E0B', tag: 'Specialist', desc: 'Safe, consistent transport for children and adults with special educational needs. DBS-checked drivers, WAV vehicles, local authority approved.' },
-  { icon: '✈️', title: 'Airport Transfers',            colour: '#A855F7', tag: '',          desc: 'All major London airports including Heathrow, Gatwick, City, Luton and Stansted. Flight tracking, meet and greet, 24/7 availability.' },
-  { icon: '🥂', title: 'Concierge Chauffeur',          colour: '#F59E0B', tag: 'Premium',   desc: 'Executive door-to-door service with discretion guaranteed. Mercedes, Range Rover and ultra-luxury vehicles available.' },
-  { icon: '🎪', title: 'Events & Wedding Transport',   colour: '#A855F7', tag: '',          desc: 'Full fleet coordination for weddings, galas, premieres and corporate events. Multi-vehicle packages with branded options.' },
-  { icon: '🏢', title: 'Corporate Accounts',           colour: '#F59E0B', tag: 'Business',  desc: 'Dedicated account management, monthly invoicing and priority booking for corporate clients and roadshows.' },
-  { icon: '🌙', title: 'Night & Entertainment',        colour: '#A855F7', tag: '',          desc: 'Theatre, opera, private members clubs and late-night transfers. Punctual, professional, always discreet.' },
+  { icon: '🧒', title: 'SEN School & Care Transport',  colour: '#F59E0B', tag: 'Specialist', desc: 'Safe, consistent transport for children and adults with special educational needs. DBS-checked drivers, WAV vehicles, local authority approved.', quoteParam: 'SEN / Care Transport' },
+  { icon: '✈️', title: 'Airport Transfers',             colour: '#A855F7', tag: '',          desc: 'All major London airports including Heathrow, Gatwick, City, Luton and Stansted. Flight tracking, meet and greet, 24/7 availability.', quoteParam: 'Airport Transfer' },
+  { icon: '🥂', title: 'Concierge Chauffeur',           colour: '#F59E0B', tag: 'Premium',   desc: 'Executive door-to-door service with discretion guaranteed. Mercedes, Range Rover and ultra-luxury vehicles available.', quoteParam: 'Concierge Chauffeur' },
+  { icon: '🎪', title: 'Events & Wedding Transport',    colour: '#A855F7', tag: '',          desc: 'Full fleet coordination for weddings, galas, premieres and corporate events. Multi-vehicle packages with branded options.', quoteParam: 'Wedding Transport' },
+  { icon: '🏢', title: 'Corporate Accounts',            colour: '#F59E0B', tag: 'Business',  desc: 'Dedicated account management, monthly invoicing and priority booking for corporate clients and roadshows.', quoteParam: 'Corporate / Business Transfer' },
+  { icon: '🌙', title: 'Night & Entertainment',         colour: '#A855F7', tag: '',          desc: 'Theatre, opera, private members clubs and late-night transfers. Punctual, professional, always discreet.', quoteParam: 'Night & Entertainment' },
 ]
 
 const TESTIMONIALS = [
@@ -207,14 +207,30 @@ export default function HomePage() {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
             {SERVICES.map(s => (
-              <div key={s.title} className="glass-card" style={{ padding: '28px', borderTop: `3px solid ${s.colour}` }}>
-                <div style={{ fontSize: '2.5rem', marginBottom: '14px' }}>{s.icon}</div>
-                {s.tag && <span className="badge badge-purple" style={{ marginBottom: '10px', display: 'inline-block' }}>{s.tag}</span>}
-                <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'white', marginBottom: '10px' }}>{s.title}</h3>
-                <div style={{ width: '28px', height: '3px', background: s.colour, marginBottom: '12px', borderRadius: '2px' }} />
-                <p style={{ fontSize: '0.875rem', color: '#94A3B8', lineHeight: 1.7 }}>{s.desc}</p>
-              </div>
-            ))}
+  <div key={s.title} className="glass-card" style={{ padding: '24px', borderTop: `3px solid ${s.colour}`, display:'flex', flexDirection:'column' }}>
+    <div style={{ fontSize: '2.2rem', marginBottom: '12px' }}>{s.icon}</div>
+    {s.tag && <span className="badge badge-purple" style={{ marginBottom: '10px', display: 'inline-block' }}>{s.tag}</span>}
+    <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'white', marginBottom: '8px' }}>{s.title}</h3>
+    <div style={{ width: '28px', height: '3px', background: s.colour, marginBottom: '10px', borderRadius: '2px' }} />
+    <p style={{ fontSize: '0.85rem', color: '#94A3B8', lineHeight: 1.65, marginBottom: '16px', flex: 1 }}>{s.desc}</p>
+    <div style={{ display:'flex', gap:'8px', flexWrap:'wrap' }}>
+      <button
+        onClick={() => navigate(`/quote?service=${encodeURIComponent(s.quoteParam)}`)}
+        style={{ flex:1, minWidth:'100px', padding:'10px 8px', background:'rgba(245,158,11,0.12)', border:'1px solid rgba(245,158,11,0.4)', color:'#F59E0B', borderRadius:'8px', cursor:'pointer', fontSize:'0.78rem', fontWeight:700, transition:'all 0.2s' }}
+        onMouseEnter={e=>{e.target.style.background='rgba(245,158,11,0.22)'}}
+        onMouseLeave={e=>{e.target.style.background='rgba(245,158,11,0.12)'}}>
+        💬 Get Quote
+      </button>
+      <button
+        onClick={() => navigate(`/booking?service=${encodeURIComponent(s.quoteParam)}`)}
+        style={{ flex:1, minWidth:'100px', padding:'10px 8px', background:'rgba(168,85,247,0.12)', border:'1px solid rgba(168,85,247,0.4)', color:'#A855F7', borderRadius:'8px', cursor:'pointer', fontSize:'0.78rem', fontWeight:700, transition:'all 0.2s' }}
+        onMouseEnter={e=>{e.target.style.background='rgba(168,85,247,0.22)'}}
+        onMouseLeave={e=>{e.target.style.background='rgba(168,85,247,0.12)'}}>
+        🚗 Book Now
+      </button>
+    </div>
+  </div>
+))}
           </div>
         </div>
       </section>

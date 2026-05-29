@@ -24,7 +24,7 @@ const inp = {
 export default function QuotePage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const defaultType = searchParams.get('type') === 'sen' ? 'SEN / Care Transport' : ''
+  const defaultType = searchParams.get('service') || (searchParams.get('type') === 'sen' ? 'SEN / Care Transport' : '')
   const [submitted, setSubmitted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)

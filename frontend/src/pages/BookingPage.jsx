@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 
 const API = 'http://localhost:3001'
 
@@ -21,8 +22,10 @@ function Field({ label, error, children }) {
   )
 }
 
-function Step1({ onNext }) {
-  const { register, handleSubmit, formState: { errors } } = useForm()
+function Step1({ onNext, defaultService }) {
+  const { register, handleSubmit, formState: { errors } } = useForm({
+    defaultValues: { serviceType: defaultService }
+  })
   const today = new Date().toISOString().split('T')[0]
   return (
     <form onSubmit={handleSubmit(onNext)} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
@@ -200,6 +203,9 @@ function Step3({ formData, onBack, onSubmit, isSubmitting }) {
 }
 
 export default function BookingPage() {
+  const [searchParams]  = useSearchParams()
+const defaultService  = searchParams.get('service') || ''
+const [step, setStep]               = useState(0)
   const [step, setStep]               = useState(0)
   const [formData, setFormData]       = useState({})
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -257,7 +263,7 @@ export default function BookingPage() {
           {error && (
             <div style={{ background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.3)', borderRadius: '8px', padding: '14px', marginBottom: '20px', color: '#F87171', fontSize: '0.875rem' }}>⚠ {error}</div>
           )}
-          {step === 0 && <Step1 onNext={next} />}
+          {step === 0 && <Step1 onNext={next} defaultService={defaultService} />}
           {step === 1 && <Step2 onNext={next} onBack={back} />}
           {step === 2 && <Step3 formData={formData} onBack={back} onSubmit={submit} isSubmitting={isSubmitting} />}
         </div>
