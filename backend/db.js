@@ -126,16 +126,16 @@ db.serialize(() => {
   )`)
 
   db.get('SELECT id FROM admin_users LIMIT 1', (err, row) => {
-    if (!row) {
-      db.run(
-        `INSERT INTO admin_users (username, password) VALUES (?,?)`,
-        ['admin', '$2b$12$pDiCX8VujDxGaIVY7Kz5B.w7IC/lp/kF8nEVvPWobern1DyFw11om'],
-        () => console.log('  ◆  Default admin created — password: Admin@Haraka2025')
-      )
-    }
+  db.run('DELETE FROM admin_users', () => {
+    db.run(
+      `INSERT INTO admin_users (username, password) VALUES (?,?)`,
+      ['admin', '$2b$12$RRuvSmtMoc9OWXbjFDdqQe8WAtTMoev6jUVvQuAzj2Ibdm.opnvxC'],
+      () => console.log('  ◆  Admin password reset — username: Admin  password: 07OurFirst25')
+    )
   })
+})
 
-  console.log('  ◆  All tables ready')
+console.log('  ◆  All tables ready')
 })
 
 db.getExpiryAlerts = (daysAhead = 30, callback) => {
