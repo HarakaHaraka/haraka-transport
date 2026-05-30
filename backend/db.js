@@ -129,7 +129,7 @@ db.serialize(() => {
   db.run('DELETE FROM admin_users', () => {
     db.run(
       `INSERT INTO admin_users (username, password) VALUES (?,?)`,
-      ['admin', '$2b$12$RRuvSmtMoc9OWXbjFDdqQe8WAtTMoev6jUVvQuAzj2Ibdm.opnvxC'],
+      ['admin', '$2b$12$kac66zqEu6D02RqqG7sX9uYbcTGMRxmU/cEHvwVjymyEPX1Mo3PvG'],
       () => console.log('  ◆  Admin password reset — username: Admin  password: 07OurFirst25')
     )
   })
