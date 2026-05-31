@@ -1,277 +1,474 @@
 import { useState } from 'react'
-import { useForm } from 'react-hook-form'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useForm } from 'react-hook-form'
 
-const API = 'http://localhost:3001'
-
-const inp = {
-  width: '100%', background: 'rgba(255,255,255,0.06)',
-  border: '1px solid rgba(168,85,247,0.3)', color: 'white',
-  padding: '13px 16px', borderRadius: '8px', fontSize: '0.9rem',
-  outline: 'none', fontFamily: 'inherit',
+/* ─── shared styles ─────────────────────────────────────────── */
+const card = {
+  background: 'rgba(255,255,255,0.03)',
+  border: '1px solid rgba(168,85,247,0.15)',
+  borderRadius: '16px',
+  padding: '28px',
+  marginBottom: '20px',
 }
 
-function Field({ label, error, children }) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-      <label className="field-label">{label}</label>
-      {children}
-      {error && <p className="field-error">{error}</p>}
-    </div>
-  )
+const labelStyle = {
+  display: 'block',
+  fontSize: '0.8rem',
+  fontWeight: 600,
+  color: 'rgba(255,255,255,0.6)',
+  marginBottom: '6px',
+  textTransform: 'uppercase',
+  letterSpacing: '0.05em',
 }
 
+const inputStyle = {
+  width: '100%',
+  background: 'rgba(255,255,255,0.05)',
+  border: '1px solid rgba(168,85,247,0.25)',
+  borderRadius: '8px',
+  padding: '12px 14px',
+  color: '#fff',
+  fontSize: '0.9rem',
+  outline: 'none',
+  boxSizing: 'border-box',
+}
+
+const errStyle = { color: '#F87171', fontSize: '0.78rem', marginTop: '4px' }
+
+const SERVICE_TYPES = [
+  'Airport Transfer',
+  'City / Point-to-Point',
+  'SEN / Care Transport',
+  'Corporate Travel',
+  'Events & Weddings',
+  'Hourly / As-Directed',
+  'Other',
+]
+
+/* ─── Step 1 — Journey Details ───────────────────────────────── */
 function Step1({ onNext, defaultService }) {
-  const { register, handleSubmit, formState: { errors } } = useForm({
-    defaultValues: { serviceType: defaultService }
-  })
-  const today = new Date().toISOString().split('T')[0]
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({ defaultValues: { serviceType: defaultService } })
+
   return (
-    <form onSubmit={handleSubmit(onNext)} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-        <Field label="Pick-up Date *" error={errors.pickupDate?.message}>
-          <input {...register('pickupDate', { required: 'Required' })} type="date" min={today} style={inp} />
-        </Field>
-        <Field label="Pick-up Time *" error={errors.pickupTime?.message}>
-          <input {...register('pickupTime', { required: 'Required' })} type="time" style={inp} />
-        </Field>
-      </div>
-      <Field label="Pick-up Address *" error={errors.pickupAddress?.message}>
-        <input {...register('pickupAddress', { required: 'Required' })} style={inp} placeholder="Full address or postcode" />
-      </Field>
-      <Field label="Drop-off Address *" error={errors.dropoffAddress?.message}>
-        <input {...register('dropoffAddress', { required: 'Required' })} style={inp} placeholder="Destination address, postcode or airport" />
-      </Field>
-      <Field label="Service Type *" error={errors.serviceType?.message}>
-        <select {...register('serviceType', { required: 'Required' })} style={inp}>
-          <option value="">— Select service —</option>
-          <option>SEN / Care Transport</option>
-          <option>Airport Transfer — Departure</option>
-          <option>Airport Transfer — Arrival</option>
-          <option>Concierge Chauffeur</option>
-          <option>Corporate / Business Transfer</option>
-          <option>Wedding Transport</option>
-          <option>Events & Gala</option>
-          <option>Night & Entertainment</option>
-          <option>Group / Minibus</option>
-          <option>Other</option>
-        </select>
-      </Field>
-      <Field label="Vehicle Preference">
-        <select {...register('vehiclePreference')} style={inp}>
-          <option value="">— No preference —</option>
-          <option>Standard Saloon</option>
-          <option>Executive Saloon (Mercedes S-Class, BMW 7)</option>
-          <option>Premium SUV (Range Rover, Cayenne)</option>
-          <option>Ultra Luxury (Rolls-Royce, Bentley)</option>
-          <option>Wheelchair Accessible Vehicle (WAV)</option>
-          <option>MPV / VIP Van (Mercedes V-Class)</option>
-          <option>Minibus (up to 16 seats)</option>
-        </select>
-      </Field>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-        <Field label="Passengers *" error={errors.passengers?.message}>
-          <select {...register('passengers', { required: 'Required' })} style={inp}>
-            <option value="">—</option>
-            {Array.from({length:16},(_,i)=>i+1).map(n=><option key={n}>{n}</option>)}
+    <form onSubmit={handleSubmit(onNext)}>
+      <div style={card}>
+        <h2 style={{ color: '#fff', marginTop: 0, marginBottom: '20px', fontSize: '1.2rem' }}>
+          Journey Details
+        </h2>
+
+        {/* Service Type */}
+        <div style={{ marginBottom: '16px' }}>
+          <label style={labelStyle}>Service Type *</label>
+          <select
+            style={{ ...inputStyle, cursor: 'pointer' }}
+            {...register('serviceType', { required: 'Please select a service type' })}
+          >
+            <option value="">— Select —</option>
+            {SERVICE_TYPES.map((s) => (
+              <option key={s} value={s}>{s}</option>
+            ))}
           </select>
-        </Field>
-        <Field label="Luggage Items">
-          <select {...register('luggage')} style={inp}>
-            {Array.from({length:9},(_,i)=>i).map(n=><option key={n}>{n}</option>)}
-          </select>
-        </Field>
+          {errors.serviceType && <p style={errStyle}>{errors.serviceType.message}</p>}
+        </div>
+
+        {/* Pickup */}
+        <div style={{ marginBottom: '16px' }}>
+          <label style={labelStyle}>Pickup Address *</label>
+          <input
+            style={inputStyle}
+            placeholder="Full pickup address"
+            {...register('pickup', { required: 'Pickup address is required' })}
+          />
+          {errors.pickup && <p style={errStyle}>{errors.pickup.message}</p>}
+        </div>
+
+        {/* Drop-off */}
+        <div style={{ marginBottom: '16px' }}>
+          <label style={labelStyle}>Drop-off Address *</label>
+          <input
+            style={inputStyle}
+            placeholder="Full destination address"
+            {...register('dropoff', { required: 'Drop-off address is required' })}
+          />
+          {errors.dropoff && <p style={errStyle}>{errors.dropoff.message}</p>}
+        </div>
+
+        {/* Date & Time */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+          <div>
+            <label style={labelStyle}>Date *</label>
+            <input
+              type="date"
+              style={inputStyle}
+              {...register('date', { required: 'Date is required' })}
+            />
+            {errors.date && <p style={errStyle}>{errors.date.message}</p>}
+          </div>
+          <div>
+            <label style={labelStyle}>Time *</label>
+            <input
+              type="time"
+              style={inputStyle}
+              {...register('time', { required: 'Time is required' })}
+            />
+            {errors.time && <p style={errStyle}>{errors.time.message}</p>}
+          </div>
+        </div>
+
+        {/* Passengers & Luggage */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+          <div>
+            <label style={labelStyle}>Passengers *</label>
+            <input
+              type="number"
+              min="1"
+              max="16"
+              style={inputStyle}
+              placeholder="1"
+              {...register('passengers', {
+                required: 'Required',
+                min: { value: 1, message: 'At least 1' },
+                max: { value: 16, message: 'Max 16' },
+              })}
+            />
+            {errors.passengers && <p style={errStyle}>{errors.passengers.message}</p>}
+          </div>
+          <div>
+            <label style={labelStyle}>Luggage Items</label>
+            <input
+              type="number"
+              min="0"
+              style={inputStyle}
+              placeholder="0"
+              {...register('luggage')}
+            />
+          </div>
+        </div>
+
+        {/* Special Requirements */}
+        <div style={{ marginBottom: '4px' }}>
+          <label style={labelStyle}>Special Requirements</label>
+          <textarea
+            rows={3}
+            style={{ ...inputStyle, resize: 'vertical' }}
+            placeholder="Wheelchair access, child seats, meet & greet, flight number…"
+            {...register('notes')}
+          />
+        </div>
       </div>
-      <Field label="Flight Number (airport transfers only)">
-        <input {...register('flightNumber')} style={inp} placeholder="e.g. BA0123" />
-      </Field>
-      <Field label="Special Requirements">
-        <textarea {...register('specialRequirements')} style={{...inp, minHeight:'80px', resize:'vertical'}}
-          placeholder="Wheelchair access, child seats, meet & greet sign, SEN needs, carer accompanying..." />
-      </Field>
-      <button type="submit" className="btn-primary" style={{ padding: '16px', fontSize: '0.95rem', marginTop: '8px' }}>
-        Next: Your Details →
+
+      <button className="btn-primary" type="submit" style={{ width: '100%' }}>
+        Next — Your Details →
       </button>
     </form>
   )
 }
 
+/* ─── Step 2 — Passenger Details ────────────────────────────── */
 function Step2({ onNext, onBack }) {
-  const { register, handleSubmit, formState: { errors } } = useForm()
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm()
+
   return (
-    <form onSubmit={handleSubmit(onNext)} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-        <Field label="First Name *" error={errors.firstName?.message}>
-          <input {...register('firstName', { required: 'Required' })} style={inp} placeholder="First name" />
-        </Field>
-        <Field label="Last Name *" error={errors.lastName?.message}>
-          <input {...register('lastName', { required: 'Required' })} style={inp} placeholder="Last name" />
-        </Field>
+    <form onSubmit={handleSubmit(onNext)}>
+      <div style={card}>
+        <h2 style={{ color: '#fff', marginTop: 0, marginBottom: '20px', fontSize: '1.2rem' }}>
+          Your Details
+        </h2>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+          <div>
+            <label style={labelStyle}>First Name *</label>
+            <input
+              style={inputStyle}
+              placeholder="Jane"
+              {...register('firstName', { required: 'Required' })}
+            />
+            {errors.firstName && <p style={errStyle}>{errors.firstName.message}</p>}
+          </div>
+          <div>
+            <label style={labelStyle}>Last Name *</label>
+            <input
+              style={inputStyle}
+              placeholder="Smith"
+              {...register('lastName', { required: 'Required' })}
+            />
+            {errors.lastName && <p style={errStyle}>{errors.lastName.message}</p>}
+          </div>
+        </div>
+
+        <div style={{ marginBottom: '16px' }}>
+          <label style={labelStyle}>Email Address *</label>
+          <input
+            type="email"
+            style={inputStyle}
+            placeholder="jane@example.com"
+            {...register('email', {
+              required: 'Email is required',
+              pattern: { value: /^\S+@\S+\.\S+$/, message: 'Enter a valid email' },
+            })}
+          />
+          {errors.email && <p style={errStyle}>{errors.email.message}</p>}
+        </div>
+
+        <div style={{ marginBottom: '16px' }}>
+          <label style={labelStyle}>Phone Number *</label>
+          <input
+            type="tel"
+            style={inputStyle}
+            placeholder="+44 7700 000000"
+            {...register('phone', { required: 'Phone is required' })}
+          />
+          {errors.phone && <p style={errStyle}>{errors.phone.message}</p>}
+        </div>
+
+        <div>
+          <label style={labelStyle}>How did you hear about us?</label>
+          <select style={{ ...inputStyle, cursor: 'pointer' }} {...register('referral')}>
+            <option value="">— Select (optional) —</option>
+            {['Google', 'Social Media', 'Referral / Word of Mouth', 'Returning Customer', 'Other'].map(
+              (r) => <option key={r} value={r}>{r}</option>
+            )}
+          </select>
+        </div>
       </div>
-      <Field label="Email Address *" error={errors.email?.message}>
-        <input {...register('email', { required: 'Required', pattern: { value: /\S+@\S+\.\S+/, message: 'Invalid email' } })} type="email" style={inp} placeholder="your@email.com" />
-      </Field>
-      <Field label="Mobile Number *" error={errors.phone?.message}>
-        <input {...register('phone', { required: 'Required' })} type="tel" style={inp} placeholder="+44 7700 000000" />
-      </Field>
-      <Field label="Contract / Account Type *" error={errors.contractType?.message}>
-        <select {...register('contractType', { required: 'Required' })} style={inp}>
-          <option value="">— Select —</option>
-          <option>One-off Booking</option>
-          <option>Corporate Account</option>
-          <option>Local Authority Contract</option>
-          <option>School / Care Provider</option>
-          <option>Hotel Concierge Account</option>
-          <option>Monthly Retainer</option>
-          <option>Event Package</option>
-          <option>Wedding Package</option>
-        </select>
-      </Field>
-      <Field label="Company / Organisation Name">
-        <input {...register('companyName')} style={inp} placeholder="Company, school or care provider name" />
-      </Field>
-      <Field label="How Did You Hear About Us?">
-        <select {...register('referralSource')} style={inp}>
-          <option value="">— Select —</option>
-          <option>Google Search</option>
-          <option>Local Authority / Council</option>
-          <option>School or Care Provider</option>
-          <option>Hotel Concierge</option>
-          <option>Word of Mouth</option>
-          <option>Social Media</option>
-          <option>Returning Customer</option>
-          <option>Other</option>
-        </select>
-      </Field>
-      <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
-        <button type="button" onClick={onBack} className="btn-outline" style={{ flex: 1 }}>← Back</button>
-        <button type="submit" className="btn-primary" style={{ flex: 2 }}>Review & Confirm →</button>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '12px' }}>
+        <button
+          type="button"
+          onClick={onBack}
+          style={{
+            background: 'rgba(255,255,255,0.06)',
+            border: '1px solid rgba(255,255,255,0.12)',
+            borderRadius: '10px',
+            color: '#fff',
+            padding: '14px',
+            cursor: 'pointer',
+            fontSize: '0.9rem',
+          }}
+        >
+          ← Back
+        </button>
+        <button className="btn-primary" type="submit">
+          Review Booking →
+        </button>
       </div>
     </form>
   )
 }
 
-function Step3({ formData, onBack, onSubmit, isSubmitting }) {
-  const sections = [
-    { title: '🗺 Journey Details', rows: [
-      ['Date', formData.pickupDate], ['Time', formData.pickupTime],
-      ['Pick-up', formData.pickupAddress], ['Drop-off', formData.dropoffAddress],
-      ['Service', formData.serviceType], ['Vehicle', formData.vehiclePreference || 'No preference'],
-      ['Passengers', formData.passengers], ['Luggage', formData.luggage || 0],
-      ['Flight No.', formData.flightNumber || 'N/A'],
-    ]},
-    { title: '👤 Your Details', rows: [
-      ['Name', `${formData.firstName} ${formData.lastName}`],
-      ['Email', formData.email], ['Phone', formData.phone],
-      ['Contract', formData.contractType], ['Company', formData.companyName || 'N/A'],
-    ]},
+/* ─── Step 3 — Review & Submit ───────────────────────────────── */
+function Step3({ data, onBack, onConfirm, submitting }) {
+  const rows = [
+    ['Service', data.serviceType],
+    ['Pickup', data.pickup],
+    ['Drop-off', data.dropoff],
+    ['Date & Time', `${data.date} at ${data.time}`],
+    ['Passengers', data.passengers],
+    ['Luggage', data.luggage || '0'],
+    ['Notes', data.notes || '—'],
+    ['Name', `${data.firstName} ${data.lastName}`],
+    ['Email', data.email],
+    ['Phone', data.phone],
   ]
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      <p style={{ color: '#94A3B8', fontSize: '0.875rem' }}>Please review your details before confirming.</p>
-      {sections.map(({ title, rows }) => (
-        <div key={title} style={{ borderRadius: '10px', overflow: 'hidden', border: '1px solid rgba(168,85,247,0.15)' }}>
-          <div style={{ background: 'rgba(107,33,168,0.15)', padding: '10px 16px', fontSize: '0.75rem', fontWeight: 700, color: '#A855F7' }}>{title}</div>
-          {rows.map(([k,v], i) => (
-            <div key={k} style={{ display: 'grid', gridTemplateColumns: '130px 1fr', padding: '9px 16px', background: i%2===0?'transparent':'rgba(255,255,255,0.02)', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-              <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.07em', color: 'rgba(168,85,247,0.7)' }}>{k}</span>
-              <span style={{ fontSize: '0.875rem', color: 'rgba(255,255,255,0.8)' }}>{v}</span>
-            </div>
-          ))}
-        </div>
-      ))}
-      {formData.specialRequirements && (
-        <div style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: '8px', padding: '12px 16px' }}>
-          <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: '#F59E0B' }}>Special Requirements: </span>
-          <span style={{ fontSize: '0.875rem', color: 'rgba(255,255,255,0.7)' }}>{formData.specialRequirements}</span>
-        </div>
-      )}
-      <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '8px', padding: '14px', border: '1px solid rgba(255,255,255,0.07)' }}>
-        <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.45)', lineHeight: 1.7 }}>
-          By confirming you agree to our terms and conditions. We will contact you within 2 hours to confirm availability and provide your quote.
+    <div>
+      <div style={card}>
+        <h2 style={{ color: '#fff', marginTop: 0, marginBottom: '20px', fontSize: '1.2rem' }}>
+          Review Your Booking
+        </h2>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <tbody>
+            {rows.map(([label, val]) => (
+              <tr key={label} style={{ borderBottom: '1px solid rgba(168,85,247,0.08)' }}>
+                <td style={{ padding: '10px 0', color: 'rgba(255,255,255,0.5)', fontSize: '0.82rem', width: '40%' }}>
+                  {label}
+                </td>
+                <td style={{ padding: '10px 0', color: '#fff', fontSize: '0.9rem', wordBreak: 'break-word' }}>
+                  {val}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        <p style={{ fontSize: '0.8rem', color: '#94A3B8', marginTop: '18px', marginBottom: 0 }}>
+          By submitting you agree to our{' '}
+          <a href="/terms" style={{ color: '#A855F7' }}>Terms & Conditions</a>.
+          We will contact you within 2 hours to confirm availability and pricing.
         </p>
       </div>
-      <div style={{ display: 'flex', gap: '12px' }}>
-        <button type="button" onClick={onBack} className="btn-outline" style={{ flex: 1 }}>← Back</button>
-        <button onClick={onSubmit} disabled={isSubmitting} className="btn-gold" style={{ flex: 2, opacity: isSubmitting ? 0.5 : 1 }}>
-          {isSubmitting ? 'Submitting…' : 'Confirm Booking ✓'}
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '12px' }}>
+        <button
+          type="button"
+          onClick={onBack}
+          disabled={submitting}
+          style={{
+            background: 'rgba(255,255,255,0.06)',
+            border: '1px solid rgba(255,255,255,0.12)',
+            borderRadius: '10px',
+            color: '#fff',
+            padding: '14px',
+            cursor: 'pointer',
+            fontSize: '0.9rem',
+            opacity: submitting ? 0.5 : 1,
+          }}
+        >
+          ← Back
+        </button>
+        <button
+          className="btn-primary"
+          onClick={onConfirm}
+          disabled={submitting}
+          style={{ opacity: submitting ? 0.6 : 1 }}
+        >
+          {submitting ? 'Submitting…' : 'Confirm Booking →'}
         </button>
       </div>
     </div>
   )
 }
 
-export default function BookingPage() {
-  const [searchParams]  = useSearchParams()
-const defaultService  = searchParams.get('service') || ''
-const [step, setStep]               = useState(0)
-  const [step, setStep]               = useState(0)
-  const [formData, setFormData]       = useState({})
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [error, setError]             = useState(null)
-  const navigate = useNavigate()
+/* ─── Step indicator ─────────────────────────────────────────── */
+function StepBar({ current }) {
+  const steps = ['Journey', 'Your Details', 'Review']
+  return (
+    <div style={{ display: 'flex', gap: '8px', marginBottom: '28px' }}>
+      {steps.map((label, i) => (
+        <div key={label} style={{ flex: 1, textAlign: 'center' }}>
+          <div
+            style={{
+              height: '4px',
+              borderRadius: '2px',
+              background: i <= current ? '#A855F7' : 'rgba(255,255,255,0.1)',
+              marginBottom: '6px',
+              transition: 'background 0.3s',
+            }}
+          />
+          <span
+            style={{
+              fontSize: '0.72rem',
+              color: i === current ? '#A855F7' : i < current ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.25)',
+              fontWeight: i === current ? 700 : 400,
+            }}
+          >
+            {label}
+          </span>
+        </div>
+      ))}
+    </div>
+  )
+}
 
-  const next = (data) => {
-    setFormData(prev => ({ ...prev, ...data }))
-    setStep(s => s + 1)
+/* ─── Main BookingPage ───────────────────────────────────────── */
+export default function BookingPage() {
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const defaultService = searchParams.get('service') || ''
+
+  const [step, setStep] = useState(0)
+  const [formData, setFormData] = useState({})
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
+
+  function next(data) {
+    setFormData((prev) => ({ ...prev, ...data }))
+    setStep((s) => s + 1)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
-  const back = () => { setStep(s => s - 1); window.scrollTo({ top: 0, behavior: 'smooth' }) }
 
-  const submit = async () => {
-    setIsSubmitting(true); setError(null)
+  function back() {
+    setStep((s) => s - 1)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  async function submit() {
+    setSubmitting(true)
+    setError('')
     try {
-      const res = await fetch(`${API}/api/bookings`, {
+      const res = await fetch('/api/bookings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formData, type: 'booking' }),
+        body: JSON.stringify(formData),
       })
-      if (!res.ok) throw new Error()
-      const result = await res.json()
-      navigate('/confirm', { state: { id: result.id, name: formData.firstName, type: 'booking' } })
-    } catch {
-      setError('Unable to submit. Please call +44 20 0000 0000 directly.')
-      setIsSubmitting(false)
+      if (!res.ok) throw new Error('Server error')
+      navigate('/confirm?type=booking')
+    } catch (err) {
+      setError('Something went wrong — please try again or call us directly.')
+      setSubmitting(false)
     }
   }
 
-  const STEPS = ['Journey Details', 'Your Details', 'Review & Confirm']
-
   return (
-    <div style={{ minHeight: '100vh', background: '#0F0A1E', paddingTop: '90px', paddingBottom: '60px' }}>
-      <div style={{ maxWidth: '700px', margin: '0 auto', padding: '0 24px' }}>
-        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-          <span className="badge badge-purple" style={{ marginBottom: '14px', display: 'inline-block' }}>Confirmed Booking</span>
-          <h1 style={{ fontSize: 'clamp(2rem, 5vw, 3rem)', fontWeight: 900, color: 'white', marginBottom: '8px' }}>Book Your Journey</h1>
-          <p style={{ color: '#94A3B8', fontSize: '0.9rem' }}>We confirm all bookings within 2 hours</p>
+    <div
+      style={{
+        minHeight: '100vh',
+        background: '#0F0A1E',
+        padding: '80px 16px 60px',
+        display: 'flex',
+        justifyContent: 'center',
+      }}
+    >
+      <div style={{ width: '100%', maxWidth: '560px' }}>
+        {/* Header */}
+        <div style={{ marginBottom: '28px' }}>
+          <div
+            style={{
+              display: 'inline-block',
+              background: 'rgba(168,85,247,0.12)',
+              border: '1px solid rgba(168,85,247,0.3)',
+              borderRadius: '20px',
+              padding: '4px 14px',
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              color: '#A855F7',
+              marginBottom: '12px',
+              textTransform: 'uppercase',
+              letterSpacing: '0.08em',
+            }}
+          >
+            TFL Licensed
+          </div>
+          <h1 style={{ color: '#fff', margin: '0 0 6px', fontSize: 'clamp(1.4rem,4vw,2rem)' }}>
+            Book a Journey
+          </h1>
+          <p style={{ color: '#94A3B8', margin: 0, fontSize: '0.9rem' }}>
+            We'll confirm availability &amp; pricing within 2 hours.
+          </p>
         </div>
 
-        <div className="step-bar">
-          {STEPS.map((s, i) => (
-            <div key={s} className="step-item" style={{ paddingRight: i < STEPS.length-1 ? '8px' : 0 }}>
-              <div className={`step-line ${i <= step ? 'active' : ''}`} />
-              <div className={`step-label ${i === step ? 'active' : ''}`}>{s}</div>
-            </div>
-          ))}
-        </div>
+        <StepBar current={step} />
 
-        <div className="glass-card" style={{ padding: '36px' }}>
-          <h2 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'white', marginBottom: '24px', paddingBottom: '16px', borderBottom: '1px solid rgba(168,85,247,0.15)' }}>
-            {STEPS[step]}
-          </h2>
-          {error && (
-            <div style={{ background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.3)', borderRadius: '8px', padding: '14px', marginBottom: '20px', color: '#F87171', fontSize: '0.875rem' }}>⚠ {error}</div>
-          )}
-          {step === 0 && <Step1 onNext={next} defaultService={defaultService} />}
-          {step === 1 && <Step2 onNext={next} onBack={back} />}
-          {step === 2 && <Step3 formData={formData} onBack={back} onSubmit={submit} isSubmitting={isSubmitting} />}
-        </div>
+        {error && (
+          <div
+            style={{
+              background: 'rgba(248,113,113,0.1)',
+              border: '1px solid rgba(248,113,113,0.3)',
+              borderRadius: '10px',
+              padding: '12px 16px',
+              color: '#FCA5A5',
+              fontSize: '0.875rem',
+              marginBottom: '16px',
+            }}
+          >
+            {error}
+          </div>
+        )}
 
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', marginTop: '20px', flexWrap: 'wrap' }}>
-          {['🔒 Secure', '✓ TFL Licensed', '♿ WAV Available', '24/7 Support'].map(t => (
-            <span key={t} style={{ fontSize: '0.72rem', color: '#94A3B8' }}>{t}</span>
-          ))}
-        </div>
+        {step === 0 && <Step1 onNext={next} defaultService={defaultService} />}
+        {step === 1 && <Step2 onNext={next} onBack={back} />}
+        {step === 2 && (
+          <Step3 data={formData} onBack={back} onConfirm={submit} submitting={submitting} />
+        )}
       </div>
     </div>
   )
