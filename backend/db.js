@@ -1,5 +1,6 @@
 const sqlite3 = require('sqlite3').verbose()
 const path    = require('path')
+const bcrypt  = require('bcrypt')
 
 const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'haraka.sqlite')
 
@@ -125,17 +126,24 @@ db.serialize(() => {
     createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
   )`)
 
-  db.get('SELECT id FROM admin_users LIMIT 1', (err, row) => {
-  db.run('DELETE FROM admin_users', () => {
-    db.run(
-      `INSERT INTO admin_users (username, password) VALUES (?,?)`,
-      ['admin', '$2b$12$kac66zqEu6D02RqqG7sX9uYbcTGMRxmU/cEHvwVjymyEPX1Mo3PvG'],
-      () => console.log('  ◆  Admin password reset — username: Admin  password: 07OurFirst25')
-    )
+  // Seed admin — runs once on fresh database
+  db.get('SELECT id FROM admin_users WHERE username = ?', ['admin'], async (err, row) => {
+    if (!row) {
+      const hash = await bcrypt.hash('Haraka2025', 12)
+      db.run(
+        `INSERT INTO admin_users (username, password) VALUES (?, ?)`,
+        ['admin', hash],
+        (err) => {
+          if (err) console.error('Admin seed error:', err.message)
+          else console.log('  ◆  Admin created — username: admin  password: Haraka2025')
+        }
+      )
+    } else {
+      console.log('  ◆  Admin account exists')
+    }
   })
-})
 
-console.log('  ◆  All tables ready')
+  console.log('  ◆  All tables ready')
 })
 
 db.getExpiryAlerts = (daysAhead = 30, callback) => {
@@ -147,7 +155,6 @@ db.getExpiryAlerts = (daysAhead = 30, callback) => {
 
   db.all(`SELECT id, firstName, lastName, dvlaExpiry, pcoExpiry, dbsExpiry
     FROM drivers WHERE status = 'active'`, [], (err, drivers) => {
-
     if (!err && drivers) {
       drivers.forEach(d => {
         const name = `${d.firstName} ${d.lastName}`
@@ -158,8 +165,10 @@ db.getExpiryAlerts = (daysAhead = 30, callback) => {
             const expiringSoon = expiry <= cutoffStr && !isExpired
             if (isExpired || expiringSoon) {
               const daysLeft = Math.ceil((new Date(expiry) - new Date(today)) / 86400000)
-              alerts.push({ category:'driver', id:d.id, name, field, expiry, daysLeft,
-                severity: isExpired ? 'expired' : daysLeft <= 7 ? 'critical' : 'warning' })
+              alerts.push({
+                category: 'driver', id: d.id, name, field, expiry, daysLeft,
+                severity: isExpired ? 'expired' : daysLeft <= 7 ? 'critical' : 'warning',
+              })
             }
           })
       })
@@ -167,7 +176,6 @@ db.getExpiryAlerts = (daysAhead = 30, callback) => {
 
     db.all(`SELECT id, registration, make, model, motExpiry, taxExpiry, insuranceExpiry, pcoPlateExpiry
       FROM vehicles WHERE status = 'active'`, [], (err2, vehicles) => {
-
       if (!err2 && vehicles) {
         vehicles.forEach(v => {
           const name = `${v.make} ${v.model} (${v.registration})`
@@ -178,13 +186,14 @@ db.getExpiryAlerts = (daysAhead = 30, callback) => {
               const expiringSoon = expiry <= cutoffStr && !isExpired
               if (isExpired || expiringSoon) {
                 const daysLeft = Math.ceil((new Date(expiry) - new Date(today)) / 86400000)
-                alerts.push({ category:'vehicle', id:v.id, name, field, expiry, daysLeft,
-                  severity: isExpired ? 'expired' : daysLeft <= 7 ? 'critical' : 'warning' })
+                alerts.push({
+                  category: 'vehicle', id: v.id, name, field, expiry, daysLeft,
+                  severity: isExpired ? 'expired' : daysLeft <= 7 ? 'critical' : 'warning',
+                })
               }
             })
         })
       }
-
       if (typeof callback === 'function') callback(alerts)
     })
   })
