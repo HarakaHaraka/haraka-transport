@@ -1,0 +1,1884 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Haraka Transport — Admin</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0F0A1E;color:#ccc;font-family:Arial,sans-serif;min-height:100vh}
+
+/* ── Login ── */
+#login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px}
+.login-card{background:#1A1033;border:1px solid rgba(168,85,247,0.3);border-radius:16px;padding:40px;max-width:400px;width:100%;text-align:center}
+.login-logo{width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,#6B21A8,#A855F7);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:1.4rem;font-weight:900;color:white}
+
+/* ── App shell ── */
+#app{display:none;min-height:100vh}
+.topbar{background:#1A1033;border-bottom:1px solid rgba(168,85,247,0.2);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.logo-text{font-weight:800;font-size:1rem;color:white;letter-spacing:0.08em}
+.logo-text span{color:#F59E0B}
+.tab-nav{display:flex;gap:4px;padding:0 28px;background:#1A1033;border-bottom:1px solid rgba(168,85,247,0.1);overflow-x:auto}
+.tab-btn{padding:14px 20px;background:none;border:none;cursor:pointer;color:#94A3B8;font-size:0.78rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;border-bottom:3px solid transparent;transition:all 0.2s;white-space:nowrap}
+.tab-btn.active{color:#A855F7;border-bottom-color:#A855F7}
+.tab-btn:hover{color:#A855F7}
+.content{padding:28px;max-width:1600px;margin:0 auto}
+
+/* ── Inputs / buttons ── */
+input,select,textarea{background:rgba(255,255,255,0.06);border:1px solid rgba(168,85,247,0.3);color:white;padding:10px 13px;border-radius:8px;font-size:0.85rem;outline:none;font-family:Arial;width:100%;transition:border-color 0.2s}
+input:focus,select:focus,textarea:focus{border-color:#A855F7}
+input::placeholder,textarea::placeholder{color:rgba(255,255,255,0.3)}
+select option{background:#1A1033}
+label{font-size:0.68rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#A855F7;display:block;margin-bottom:5px}
+.field{margin-bottom:14px}
+.btn{padding:10px 20px;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:0.8rem;letter-spacing:0.05em;text-transform:uppercase;transition:all 0.2s}
+.btn-primary{background:linear-gradient(135deg,#6B21A8,#A855F7);color:white}
+.btn-primary:hover{opacity:0.85}
+.btn-gold{background:linear-gradient(135deg,#F59E0B,#D97706);color:#0F0A1E}
+.btn-gold:hover{opacity:0.85}
+.btn-danger{background:rgba(248,113,113,0.15);color:#F87171;border:1px solid rgba(248,113,113,0.3)}
+.btn-sm{padding:5px 12px;font-size:0.7rem}
+.btn-outline{background:transparent;color:#A855F7;border:1px solid rgba(168,85,247,0.4)}
+.btn-outline:hover{background:rgba(168,85,247,0.1)}
+
+/* ── Cards ── */
+.card{background:#1A1033;border:1px solid rgba(168,85,247,0.15);border-radius:12px;padding:20px;margin-bottom:20px}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:24px}
+.stat-card{background:#1A1033;border:1px solid rgba(168,85,247,0.15);border-radius:12px;padding:20px;text-align:center}
+.stat-num{font-size:2.2rem;font-weight:900;background:linear-gradient(135deg,#F59E0B,#A855F7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.stat-lbl{font-size:0.65rem;letter-spacing:0.12em;text-transform:uppercase;color:#94A3B8;margin-top:4px}
+
+/* ── Alerts ── */
+.alert-bar{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px}
+.alert-item{padding:8px 14px;border-radius:8px;font-size:0.78rem;font-weight:600;display:flex;align-items:center;gap:8px}
+.alert-expired{background:rgba(248,113,113,0.15);color:#F87171;border:1px solid rgba(248,113,113,0.3)}
+.alert-critical{background:rgba(251,146,60,0.15);color:#FB923C;border:1px solid rgba(251,146,60,0.3)}
+.alert-warning{background:rgba(251,191,36,0.15);color:#FBBF24;border:1px solid rgba(251,191,36,0.3)}
+
+/* ── Controls ── */
+.controls{display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap;align-items:center}
+.controls input,.controls select{flex:1;min-width:180px;max-width:300px}
+.rec-count{font-size:0.78rem;color:#94A3B8;margin-left:auto}
+
+/* ── Table ── */
+.tbl-wrap{background:#1A1033;border:1px solid rgba(168,85,247,0.1);border-radius:12px;overflow:hidden}
+.tbl-scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+th{background:rgba(107,33,168,0.2);color:#A855F7;font-size:0.65rem;letter-spacing:0.12em;text-transform:uppercase;padding:13px 13px;text-align:left;border-bottom:1px solid rgba(168,85,247,0.15);white-space:nowrap}
+td{padding:12px 13px;border-bottom:1px solid rgba(255,255,255,0.04);font-size:0.82rem;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(168,85,247,0.04)}
+.empty-row td{text-align:center;padding:48px;color:#94A3B8}
+
+/* ── Badges ── */
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em}
+.b-pending  {background:rgba(251,191,36,0.15);color:#FBBF24;border:1px solid rgba(251,191,36,0.3)}
+.b-confirmed{background:rgba(34,197,94,0.15);color:#22C55E;border:1px solid rgba(34,197,94,0.3)}
+.b-completed{background:rgba(168,85,247,0.15);color:#A855F7;border:1px solid rgba(168,85,247,0.3)}
+.b-cancelled{background:rgba(248,113,113,0.15);color:#F87171;border:1px solid rgba(248,113,113,0.3)}
+.b-active   {background:rgba(34,197,94,0.15);color:#22C55E;border:1px solid rgba(34,197,94,0.3)}
+.b-suspended{background:rgba(248,113,113,0.15);color:#F87171;border:1px solid rgba(248,113,113,0.3)}
+.b-scheduled{background:rgba(96,165,250,0.15);color:#60A5FA;border:1px solid rgba(96,165,250,0.3)}
+.b-quote    {background:rgba(245,158,11,0.15);color:#F59E0B;border:1px solid rgba(245,158,11,0.3)}
+
+/* ── Modal ── */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:999;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto}
+.overlay.open{display:flex}
+.modal{background:#1A1033;border:1px solid rgba(168,85,247,0.25);border-radius:16px;max-width:760px;width:100%;padding:32px;margin:auto;position:relative}
+.modal h2{color:white;font-size:1.1rem;margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid rgba(168,85,247,0.15)}
+.modal-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.modal-grid.cols3{grid-template-columns:1fr 1fr 1fr}
+.modal-footer{display:flex;gap:10px;margin-top:20px;padding-top:16px;border-top:1px solid rgba(168,85,247,0.1)}
+.close-x{position:absolute;top:16px;right:16px;background:rgba(255,255,255,0.08);border:none;color:#94A3B8;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:0.9rem}
+
+/* ── Detail rows ── */
+.detail-grid{display:grid;gap:2px}
+.detail-row{display:grid;grid-template-columns:160px 1fr;padding:9px 12px;border-radius:4px}
+.detail-row:nth-child(even){background:rgba(255,255,255,0.03)}
+.dk{font-size:0.65rem;text-transform:uppercase;letter-spacing:0.07em;color:rgba(168,85,247,0.7)}
+.dv{font-size:0.85rem;color:rgba(255,255,255,0.82)}
+
+/* ── File link ── */
+.file-link{color:#A855F7;font-size:0.78rem;text-decoration:none}
+.file-link:hover{color:#F59E0B}
+
+/* ── Section heading ── */
+.section-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:10px}
+.section-head h2{color:white;font-size:1.2rem;font-weight:700}
+
+@media(max-width:600px){
+  .modal-grid,.modal-grid.cols3{grid-template-columns:1fr}
+  .topbar{padding:12px 16px}
+  .content{padding:16px}
+}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.0.3/tesseract.min.js"></script>
+</head>
+<body>
+
+<!-- ════ LOGIN SCREEN ════ -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">H</div>
+    <h1 style="color:white;font-size:1.4rem;font-weight:900;margin-bottom:4px">HARAKA <span style="color:#F59E0B">TRANSPORT</span></h1>
+    <p style="color:#94A3B8;font-size:0.78rem;margin-bottom:28px;letter-spacing:0.1em">ADMIN DASHBOARD</p>
+    <div id="login-error" style="display:none;background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.3);border-radius:8px;padding:12px;color:#F87171;font-size:0.82rem;margin-bottom:16px"></div>
+    <div class="field"><label>Username</label><input id="lu" type="text" autocomplete="username" /></div>
+    <div class="field"><label>Password</label><input id="lp" type="password" autocomplete="current-password" /></div>
+    <button class="btn btn-primary" style="width:100%;margin-top:8px" onclick="doLogin()">Sign In →</button>
+    <p style="color:#94A3B8;font-size:0.7rem;margin-top:16px">Authorised access only · All activity is logged</p>
+  </div>
+</div>
+
+<!-- ════ APP SHELL ════ -->
+<div id="app">
+  <div class="topbar">
+    <div>
+      <div class="logo-text">HARAKA <span>TRANSPORT</span> &nbsp;·&nbsp; Admin</div>
+      <div style="font-size:0.6rem;color:#94A3B8;letter-spacing:0.15em;margin-top:2px">TFL Licensed · Private Hire CRM</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <div id="alert-dot" style="display:none;width:10px;height:10px;border-radius:50%;background:#F87171;animation:pulse 2s infinite"></div>
+      <button class="btn btn-gold btn-sm" onclick="exportCSV()">↓ CSV</button>
+      <button class="btn btn-outline btn-sm" onclick="logout()">Sign Out</button>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tab-nav">
+    <button class="tab-btn active" onclick="showTab('dashboard')">📊 Dashboard</button>
+    <button class="tab-btn" onclick="showTab('bookings')">📋 Bookings</button>
+    <button class="tab-btn" onclick="showTab('quotes')">💬 Quotes</button>
+    <button class="tab-btn" onclick="showTab('drivers')">👤 Drivers</button>
+    <button class="tab-btn" onclick="showTab('vehicles')">🚗 Vehicles</button>
+    <button class="tab-btn" onclick="showTab('routes')">🗺 Routes</button>
+    <button class="tab-btn" onclick="showTab('recruitment')">👥 Recruitment</button>
+    <button class="tab-btn" onclick="showTab('scanner')">🔍 Doc Scanner</button>
+  </div>
+
+  <div class="content">
+
+    <!-- ── DASHBOARD ── -->
+    <div id="tab-dashboard">
+      <div class="stat-grid" id="stat-grid">
+        <div class="stat-card"><div class="stat-num" id="s-bookings">—</div><div class="stat-lbl">Total Bookings</div></div>
+        <div class="stat-card"><div class="stat-num" id="s-quotes">—</div><div class="stat-lbl">Quote Requests</div></div>
+        <div class="stat-card"><div class="stat-num" id="s-drivers">—</div><div class="stat-lbl">Active Drivers</div></div>
+        <div class="stat-card"><div class="stat-num" id="s-vehicles">—</div><div class="stat-lbl">Active Vehicles</div></div>
+        <div class="stat-card"><div class="stat-num" id="s-alerts" style="color:#F87171">—</div><div class="stat-lbl">⚠ Expiry Alerts</div></div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+          <h3 style="color:white;font-size:1rem">⚠ Licence Expiry Alerts</h3>
+          <select id="alert-days" onchange="loadAlerts()" style="width:auto;max-width:200px">
+            <option value="7">Expiring within 7 days</option>
+            <option value="14">Expiring within 14 days</option>
+            <option value="30" selected>Expiring within 30 days</option>
+            <option value="60">Expiring within 60 days</option>
+          </select>
+        </div>
+        <div id="alerts-list"><p style="color:#94A3B8;font-size:0.85rem">Loading alerts…</p></div>
+      </div>
+
+      <div class="card">
+        <h3 style="color:white;font-size:1rem;margin-bottom:14px">📋 Recent Bookings</h3>
+        <div id="recent-bookings"></div>
+      </div>
+    </div>
+
+    <!-- ── BOOKINGS ── -->
+    <div id="tab-bookings" style="display:none">
+      <div class="section-head">
+        <h2>Bookings</h2>
+        <button class="btn btn-primary" onclick="openModal('booking-modal')">+ New Booking</button>
+      </div>
+      <div class="controls">
+        <input id="bk-search" placeholder="Search name, email, phone, address, service…" oninput="loadBookings()"/>
+        <select id="bk-status" onchange="loadBookings()">
+          <option value="all">All Statuses</option>
+          <option value="pending">Pending</option>
+          <option value="confirmed">Confirmed</option>
+          <option value="completed">Completed</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+        <span class="rec-count" id="bk-count"></span>
+      </div>
+      <div class="tbl-wrap"><div class="tbl-scroll"><table>
+        <thead><tr>
+          <th>Ref</th><th>Date & Time</th><th>Customer</th><th>Service</th>
+          <th>Pick-up</th><th>Drop-off</th><th>Contract</th><th>Driver</th>
+          <th>Vehicle</th><th>Price</th><th>Status</th><th>Actions</th>
+        </tr></thead>
+        <tbody id="bk-tbody"></tbody>
+      </table></div></div>
+    </div>
+
+    <!-- ── QUOTES ── -->
+    <div id="tab-quotes" style="display:none">
+      <div class="section-head"><h2>Quote Requests</h2></div>
+      <div class="controls">
+        <input id="qt-search" placeholder="Search name, email, phone, service…" oninput="loadQuotes()"/>
+        <select id="qt-status" onchange="loadQuotes()">
+          <option value="all">All Statuses</option>
+          <option value="pending">Pending</option>
+          <option value="confirmed">Confirmed</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+        <span class="rec-count" id="qt-count"></span>
+      </div>
+      <div class="tbl-wrap"><div class="tbl-scroll"><table>
+        <thead><tr>
+          <th>Ref</th><th>Received</th><th>Customer</th><th>Phone</th>
+          <th>Service Interest</th><th>Journey Details</th><th>Call Time</th>
+          <th>Referral</th><th>Price</th><th>Status</th><th>Actions</th>
+        </tr></thead>
+        <tbody id="qt-tbody"></tbody>
+      </table></div></div>
+    </div>
+
+    <!-- ── DRIVERS ── -->
+    <div id="tab-drivers" style="display:none">
+      <div class="section-head">
+        <h2>Driver Registry</h2>
+        <button class="btn btn-primary" onclick="openDriverModal()">+ Add Driver</button>
+      </div>
+      <div class="controls">
+        <input id="dr-search" placeholder="Search name, phone, licence number…" oninput="loadDrivers()"/>
+        <select id="dr-status" onchange="loadDrivers()">
+          <option value="all">All Statuses</option>
+          <option value="active">Active</option>
+          <option value="suspended">Suspended</option>
+          <option value="inactive">Inactive</option>
+        </select>
+        <span class="rec-count" id="dr-count"></span>
+      </div>
+      <div class="tbl-wrap"><div class="tbl-scroll"><table>
+        <thead><tr>
+          <th>Driver</th><th>Phone</th><th>DVLA Licence</th><th>DVLA Expiry</th>
+          <th>PCO Licence</th><th>PCO Expiry</th><th>DBS</th><th>DBS Expiry</th>
+          <th>Status</th><th>Documents</th><th>Actions</th>
+        </tr></thead>
+        <tbody id="dr-tbody"></tbody>
+      </table></div></div>
+    </div>
+
+    <!-- ── VEHICLES ── -->
+    <div id="tab-vehicles" style="display:none">
+      <div class="section-head">
+        <h2>Vehicle Fleet</h2>
+        <button class="btn btn-primary" onclick="openVehicleModal()">+ Add Vehicle</button>
+      </div>
+      <div class="controls">
+        <input id="vh-search" placeholder="Search registration, make, model, plate number…" oninput="loadVehicles()"/>
+        <select id="vh-status" onchange="loadVehicles()">
+          <option value="all">All Statuses</option>
+          <option value="active">Active</option>
+          <option value="maintenance">Maintenance</option>
+          <option value="retired">Retired</option>
+        </select>
+        <span class="rec-count" id="vh-count"></span>
+      </div>
+      <div class="tbl-wrap"><div class="tbl-scroll"><table>
+        <thead><tr>
+          <th>Registration</th><th>Vehicle</th><th>Type</th><th>Seats</th><th>WAV</th>
+          <th>MOT Expiry</th><th>Insurance</th><th>PCO Plate</th>
+          <th>Assigned Driver</th><th>Status</th><th>Documents</th><th>Actions</th>
+        </tr></thead>
+        <tbody id="vh-tbody"></tbody>
+      </table></div></div>
+    </div>
+
+    <!-- ── ROUTES ── -->
+    <div id="tab-routes" style="display:none">
+      <div class="section-head">
+        <h2>Routes & Trips</h2>
+        <button class="btn btn-primary" onclick="openRouteModal()">+ Add Route</button>
+      </div>
+      <div class="controls">
+        <input id="rt-search" placeholder="Search passenger, address, service, fare…" oninput="loadRoutes()"/>
+        <select id="rt-status" onchange="loadRoutes()">
+          <option value="all">All Statuses</option>
+          <option value="scheduled">Scheduled</option>
+          <option value="in-progress">In Progress</option>
+          <option value="completed">Completed</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+        <input id="rt-date-from" type="date" style="max-width:160px" onchange="loadRoutes()" title="From date"/>
+        <input id="rt-date-to"   type="date" style="max-width:160px" onchange="loadRoutes()" title="To date"/>
+        <span class="rec-count" id="rt-count"></span>
+      </div>
+      <div class="tbl-wrap"><div class="tbl-scroll"><table>
+        <thead><tr>
+          <th>Route</th><th>Date</th><th>Time</th><th>Passenger</th>
+          <th>Pick-up</th><th>Drop-off</th><th>Driver</th><th>Vehicle</th>
+          <th>Service</th><th>Fare</th><th>Status</th><th>Actions</th>
+        </tr></thead>
+        <tbody id="rt-tbody"></tbody>
+      </table></div></div>
+    </div>
+    <!-- ── RECRUITMENT ── -->
+<div id="tab-recruitment" style="display:none">
+  <div class="section-head">
+    <h2>Job Applications</h2>
+    <span id="rec-count" style="font-size:0.8rem;color:#94A3B8"></span>
+  </div>
+  <div class="controls">
+    <input id="rec-search" placeholder="Search name, email, phone…" oninput="loadRecruitment()"/>
+  </div>
+  <div class="tbl-wrap"><div class="tbl-scroll"><table>
+    <thead><tr>
+      <th>Ref</th><th>Date</th><th>Name</th><th>Email</th><th>Phone</th>
+      <th>Role Applied</th><th>CV</th><th>Documents</th><th>Actions</th>
+    </tr></thead>
+    <tbody id="rec-tbody"></tbody>
+  </table></div></div>
+</div>
+
+<!-- Recruitment detail modal -->
+<div class="overlay" id="rec-modal-overlay" onclick="closeOverlay(event,'rec-modal-overlay')">
+  <div class="modal" style="max-width:800px" id="rec-modal">
+    <button class="close-x" onclick="document.getElementById('rec-modal-overlay').classList.remove('open')">✕</button>
+    <h2 id="rec-modal-title">Application Detail</h2>
+    <div id="rec-modal-body"></div>
+  </div>
+</div>
+
+  </div><!-- /content -->
+</div><!-- /app -->
+<!-- ── DOCUMENT SCANNER TAB ── -->
+<div id="tab-scanner" style="display:none">
+  <div class="section-head">
+    <h2>🔍 AI Document Scanner</h2>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-gold btn-sm" onclick="exportScannedXLSX()">↓ Export Excel</button>
+      <button class="btn btn-outline btn-sm" onclick="clearScanned()">Clear All</button>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px">
+
+    <!-- Upload panel -->
+    <div class="card">
+      <p style="font-size:0.7rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#A855F7;margin-bottom:12px">
+        Upload Document to Scan
+      </p>
+
+      <div id="drop-zone" style="border:2px dashed rgba(168,85,247,0.4);border-radius:12px;padding:32px;text-align:center;cursor:pointer;transition:all 0.3s;margin-bottom:16px"
+        onclick="document.getElementById('scan-file-input').click()"
+        ondragover="event.preventDefault();this.style.borderColor='#A855F7'"
+        ondragleave="this.style.borderColor='rgba(168,85,247,0.4)'"
+        ondrop="handleScanDrop(event)">
+        <div style="font-size:2.5rem;margin-bottom:10px">📄</div>
+        <p style="color:#A855F7;font-weight:600;font-size:0.9rem;margin-bottom:6px">Click or drag file here</p>
+        <p style="color:#94A3B8;font-size:0.78rem">PDF or Word (.docx) · Max 10MB</p>
+      </div>
+      <input type="file" id="scan-file-input" accept=".pdf,.doc,.docx" style="display:none" onchange="handleScanFile(this.files[0])"/>
+
+      <div id="scan-file-preview" style="display:none;padding:12px;background:rgba(168,85,247,0.08);border:1px solid rgba(168,85,247,0.2);border-radius:8px;margin-bottom:14px">
+        <p id="scan-file-name" style="color:#A855F7;font-size:0.85rem;font-weight:600"></p>
+        <p id="scan-file-size" style="color:#94A3B8;font-size:0.75rem;margin-top:2px"></p>
+      </div>
+
+      <div class="field">
+        <label>Document Category</label>
+        <select id="scan-category" style="width:100%">
+          <option value="driver">Driver Document (PCO, DVLA, DBS)</option>
+          <option value="vehicle">Vehicle Document (MOT, Insurance, PCO Plate)</option>
+          <option value="recruitment">Recruitment / CV</option>
+          <option value="general">General / Other</option>
+        </select>
+      </div>
+
+      <button class="btn btn-primary" style="width:100%;margin-top:8px" onclick="runScan()" id="scan-btn">
+        🔍 Scan & Extract Data
+      </button>
+
+      <div id="scan-status" style="display:none;margin-top:12px;padding:12px;border-radius:8px;font-size:0.82rem;text-align:center"></div>
+    </div>
+
+    <!-- Extracted data panel -->
+    <div class="card">
+      <p style="font-size:0.7rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#A855F7;margin-bottom:12px">
+        Extracted Data — Review & Edit
+      </p>
+      <div id="extracted-fields" style="min-height:200px">
+        <div style="text-align:center;padding:40px;color:#94A3B8">
+          <div style="font-size:2rem;margin-bottom:8px">⬅</div>
+          <p style="font-size:0.85rem">Upload and scan a document to see extracted data here</p>
+        </div>
+      </div>
+      <div id="save-actions" style="display:none;margin-top:16px;display:none;gap:10px">
+        <button class="btn btn-primary" onclick="saveExtractedRecord()" style="flex:1">Save to Database</button>
+        <button class="btn btn-gold" onclick="addToExportQueue()" style="flex:1">Add to Export Queue</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Export queue / scanned records table -->
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <p style="font-size:0.7rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#A855F7">
+        Scanned Records Queue
+      </p>
+      <span id="queue-count" style="font-size:0.78rem;color:#94A3B8">0 records</span>
+    </div>
+    <div class="tbl-wrap"><div class="tbl-scroll">
+      <table>
+        <thead><tr>
+          <th>#</th><th>Category</th><th>Name / Entity</th><th>Licence / Ref No.</th>
+          <th>Expiry Date</th><th>DOB</th><th>Vehicle Reg</th><th>Key Details</th><th>Actions</th>
+        </tr></thead>
+        <tbody id="queue-tbody">
+          <tr class="empty-row"><td colspan="9">No records scanned yet</td></tr>
+        </tbody>
+      </table>
+    </div></div>
+  </div>
+</div>
+
+<!-- ════ MODALS ════ -->
+
+<!-- Booking detail/edit modal -->
+<div class="overlay" id="bk-modal-overlay" onclick="closeOverlay(event,'bk-modal-overlay')">
+  <div class="modal" id="bk-modal">
+    <button class="close-x" onclick="document.getElementById('bk-modal-overlay').classList.remove('open')">✕</button>
+    <h2 id="bk-modal-title">Booking Detail</h2>
+    <div id="bk-modal-body"></div>
+    <div id="bk-modal-actions"></div>
+  </div>
+</div>
+
+<!-- Driver add/edit modal -->
+<div class="overlay" id="dr-modal-overlay" onclick="closeOverlay(event,'dr-modal-overlay')">
+  <div class="modal" style="max-width:800px" id="dr-modal">
+    <button class="close-x" onclick="document.getElementById('dr-modal-overlay').classList.remove('open')">✕</button>
+    <h2 id="dr-modal-title">Add Driver</h2>
+    <form id="dr-form" onsubmit="submitDriver(event)">
+      <div class="modal-grid">
+        <div class="field"><label>First Name *</label><input name="firstName" required/></div>
+        <div class="field"><label>Last Name *</label><input name="lastName" required/></div>
+        <div class="field"><label>Phone *</label><input name="phone" required/></div>
+        <div class="field"><label>Email</label><input name="email" type="email"/></div>
+        <div class="field"><label>Date of Birth</label><input name="dateOfBirth" type="date"/></div>
+        <div class="field"><label>Status</label>
+          <select name="status"><option value="active">Active</option><option value="suspended">Suspended</option><option value="inactive">Inactive</option></select>
+        </div>
+      </div>
+      <div style="height:1px;background:rgba(168,85,247,0.15);margin:14px 0"></div>
+      <p style="font-size:0.7rem;color:#A855F7;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:12px">Licences & Compliance</p>
+      <div class="modal-grid cols3">
+        <div class="field"><label>DVLA Licence No.</label><input name="dvlaLicenceNumber"/></div>
+        <div class="field"><label>DVLA Expiry</label><input name="dvlaExpiry" type="date"/></div>
+        <div class="field"><label>DVLA Doc Upload</label><input name="dvlaLicenceFile" type="file" accept=".pdf,.jpg,.jpeg,.png"/></div>
+        <div class="field"><label>PCO Licence No.</label><input name="pcoLicenceNumber"/></div>
+        <div class="field"><label>PCO Expiry</label><input name="pcoExpiry" type="date"/></div>
+        <div class="field"><label>PCO Doc Upload</label><input name="pcoLicenceFile" type="file" accept=".pdf,.jpg,.jpeg,.png"/></div>
+        <div class="field"><label>DBS Number</label><input name="dbsNumber"/></div>
+        <div class="field"><label>DBS Expiry</label><input name="dbsExpiry" type="date"/></div>
+        <div class="field"><label>DBS Certificate Upload</label><input name="dbsCertificateFile" type="file" accept=".pdf,.jpg,.jpeg,.png"/></div>
+        <div class="field"><label>DBS Issue Date</label><input name="dbsIssueDate" type="date"/></div>
+        <div class="field"><label>Driver Photo</label><input name="photoFile" type="file" accept=".jpg,.jpeg,.png"/></div>
+      </div>
+      <div class="field"><label>Notes</label><textarea name="notes" rows="2"></textarea></div>
+      <div class="field"><label>Address</label><input name="address"/></div>
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-primary">Save Driver</button>
+        <button type="button" class="btn btn-outline" onclick="document.getElementById('dr-modal-overlay').classList.remove('open')">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Vehicle add/edit modal -->
+<div class="overlay" id="vh-modal-overlay" onclick="closeOverlay(event,'vh-modal-overlay')">
+  <div class="modal" style="max-width:800px">
+    <button class="close-x" onclick="document.getElementById('vh-modal-overlay').classList.remove('open')">✕</button>
+    <h2 id="vh-modal-title">Add Vehicle</h2>
+    <form id="vh-form" onsubmit="submitVehicle(event)">
+      <div class="modal-grid">
+        <div class="field"><label>Registration *</label><input name="registration" required style="text-transform:uppercase"/></div>
+        <div class="field"><label>Make *</label><input name="make" required placeholder="e.g. Mercedes"/></div>
+        <div class="field"><label>Model *</label><input name="model" required placeholder="e.g. S-Class"/></div>
+        <div class="field"><label>Year</label><input name="year" type="number" min="2000" max="2030"/></div>
+        <div class="field"><label>Colour</label><input name="colour"/></div>
+        <div class="field"><label>Vehicle Type</label>
+          <select name="vehicleType"><option value="">—</option><option>Saloon</option><option>Estate</option><option>SUV</option><option>MPV</option><option>Minibus</option><option>WAV</option><option>Ultra Luxury</option></select>
+        </div>
+        <div class="field"><label>Seats</label><input name="seats" type="number" min="1" max="72"/></div>
+        <div class="field"><label>Wheelchair Accessible (WAV)?</label>
+          <select name="isWAV"><option value="0">No</option><option value="1">Yes</option></select>
+        </div>
+        <div class="field"><label>Assigned Driver</label>
+          <select name="assignedDriverId" id="vh-driver-select"><option value="">— None —</option></select>
+        </div>
+        <div class="field"><label>Status</label>
+          <select name="status"><option value="active">Active</option><option value="maintenance">Maintenance</option><option value="retired">Retired</option></select>
+        </div>
+      </div>
+      <div style="height:1px;background:rgba(168,85,247,0.15);margin:14px 0"></div>
+      <p style="font-size:0.7rem;color:#A855F7;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:12px">Compliance & Documents</p>
+      <div class="modal-grid cols3">
+        <div class="field"><label>MOT Expiry</label><input name="motExpiry" type="date"/></div>
+        <div class="field"><label>Road Tax Expiry</label><input name="taxExpiry" type="date"/></div>
+        <div class="field"><label>Insurance Expiry</label><input name="insuranceExpiry" type="date"/></div>
+        <div class="field"><label>PCO Plate Number</label><input name="pcoPlateNumber"/></div>
+        <div class="field"><label>PCO Plate Expiry</label><input name="pcoPlateExpiry" type="date"/></div>
+      </div>
+      <div class="modal-grid cols3" style="margin-top:8px">
+        <div class="field"><label>MOT Certificate</label><input name="motCertFile" type="file" accept=".pdf,.jpg,.jpeg,.png"/></div>
+        <div class="field"><label>Insurance Doc</label><input name="insuranceFile" type="file" accept=".pdf,.jpg,.jpeg,.png"/></div>
+        <div class="field"><label>PCO Plate Doc</label><input name="pcoPlateFile" type="file" accept=".pdf,.jpg,.jpeg,.png"/></div>
+        <div class="field"><label>V5 Logbook</label><input name="logbookFile" type="file" accept=".pdf,.jpg,.jpeg,.png"/></div>
+      </div>
+      <div class="field"><label>Notes</label><textarea name="notes" rows="2"></textarea></div>
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-primary">Save Vehicle</button>
+        <button type="button" class="btn btn-outline" onclick="document.getElementById('vh-modal-overlay').classList.remove('open')">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Route add/edit modal -->
+<div class="overlay" id="rt-modal-overlay" onclick="closeOverlay(event,'rt-modal-overlay')">
+  <div class="modal" style="max-width:800px">
+    <button class="close-x" onclick="document.getElementById('rt-modal-overlay').classList.remove('open')">✕</button>
+    <h2 id="rt-modal-title">Add Route / Trip</h2>
+    <form id="rt-form" onsubmit="submitRoute(event)">
+      <div class="modal-grid">
+        <div class="field"><label>Route Name</label><input name="routeName" placeholder="e.g. Morning SEN Run — Hackney"/></div>
+        <div class="field"><label>Date *</label><input name="routeDate" type="date" required/></div>
+        <div class="field"><label>Departure Time *</label><input name="departureTime" type="time" required/></div>
+        <div class="field"><label>Expected Return</label><input name="expectedReturnTime" type="time"/></div>
+        <div class="field"><label>Pick-up Address *</label><input name="pickupAddress" required/></div>
+        <div class="field"><label>Drop-off Address *</label><input name="dropoffAddress" required/></div>
+        <div class="field"><label>Via / Stops</label><input name="viaPoints" placeholder="Additional stops (optional)"/></div>
+        <div class="field"><label>Passenger Name</label><input name="passengerName"/></div>
+        <div class="field"><label>Passenger Count</label><input name="passengerCount" type="number" min="1"/></div>
+        <div class="field"><label>Service Type</label>
+          <select name="serviceType"><option value="">—</option><option>SEN / Care Transport</option><option>Airport Transfer</option><option>Concierge Chauffeur</option><option>Corporate</option><option>Events</option><option>Wedding</option><option>Night & Entertainment</option><option>Other</option></select>
+        </div>
+        <div class="field"><label>Linked Booking Ref</label>
+          <select name="bookingId" id="rt-booking-select"><option value="">— None —</option></select>
+        </div>
+        <div class="field"><label>Assigned Driver</label>
+          <select name="driverId" id="rt-driver-select"><option value="">— Select —</option></select>
+        </div>
+        <div class="field"><label>Assigned Vehicle</label>
+          <select name="vehicleId" id="rt-vehicle-select"><option value="">— Select —</option></select>
+        </div>
+        <div class="field"><label>Status</label>
+          <select name="status"><option value="scheduled">Scheduled</option><option value="in-progress">In Progress</option><option value="completed">Completed</option><option value="cancelled">Cancelled</option></select>
+        </div>
+        <div class="field"><label>Fare Charged</label><input name="fareCharged" placeholder="e.g. £95"/></div>
+        <div class="field"><label>Distance (miles)</label><input name="distanceMiles" type="number" step="0.1"/></div>
+      </div>
+      <div class="field"><label>Special Notes</label><textarea name="specialNotes" rows="2"></textarea></div>
+      <div class="field"><label>Admin Notes</label><textarea name="adminNotes" rows="2"></textarea></div>
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-primary">Save Route</button>
+        <button type="button" class="btn btn-outline" onclick="document.getElementById('rt-modal-overlay').classList.remove('open')">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<style>@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}</style>
+
+<script>
+const API = 'http://localhost:3001'
+let   TOKEN = null
+let   editingDriverId  = null
+let   editingVehicleId = null
+let   editingRouteId   = null
+let   allDrivers  = []
+let   allVehicles = []
+let   allBookings = []
+
+/* ════ AUTH ════ */
+async function doLogin() {
+  const username = document.getElementById('lu').value
+  const password = document.getElementById('lp').value
+  const errEl    = document.getElementById('login-error')
+  errEl.style.display = 'none'
+  try {
+    const res  = await fetch(`${API}/api/auth/login`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username,password}) })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Login failed')
+    TOKEN = data.token
+    document.getElementById('login-screen').style.display = 'none'
+    document.getElementById('app').style.display = 'block'
+    loadAll()
+  } catch(e) {
+    errEl.textContent = e.message; errEl.style.display = 'block'
+  }
+}
+
+document.getElementById('lp').addEventListener('keydown', e => { if(e.key==='Enter') doLogin() })
+document.getElementById('lu').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('lp').focus() })
+
+function logout() { TOKEN=null; document.getElementById('app').style.display='none'; document.getElementById('login-screen').style.display='flex' }
+
+async function api(method, path, body=null, isForm=false) {
+  const opts = { method, headers:{'Authorization':`Bearer ${TOKEN}`} }
+  if (body && !isForm) { opts.headers['Content-Type']='application/json'; opts.body=JSON.stringify(body) }
+  if (body && isForm)  { opts.body = body }
+  const res  = await fetch(`${API}${path}`, opts)
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.error || 'API error')
+  return data
+}
+
+/* ════ TABS ════ */
+const tabs = ['dashboard','bookings','quotes','drivers','vehicles','routes','recruitment','scanner']
+function showTab(name) {
+  tabs.forEach(t => {
+    document.getElementById(`tab-${t}`).style.display = t===name ? 'block' : 'none'
+    document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', tabs[i]===name))
+  })
+  if (name==='bookings')    loadBookings()
+  if (name==='quotes')      loadQuotes()
+  if (name==='drivers')     loadDrivers()
+  if (name==='vehicles')    loadVehicles()
+  if (name==='routes')      loadRoutes()
+  if (name==='recruitment') loadRecruitment()
+  if (name==='scanner') initScanner()
+}
+
+/* ════ LOAD ALL ════ */
+async function loadAll() {
+  loadStats(); loadAlerts(); loadRecentBookings()
+  allDrivers  = await api('GET','/api/admin/drivers')
+  allVehicles = await api('GET','/api/admin/vehicles')
+  allBookings = await api('GET','/api/admin/bookings?type=booking')
+}
+
+/* ── Stats ── */
+async function loadStats() {
+  try {
+    const s = await api('GET','/api/admin/stats')
+    document.getElementById('s-bookings').textContent  = s.totalBookings
+    document.getElementById('s-quotes').textContent    = s.totalQuotes
+    document.getElementById('s-drivers').textContent   = s.activeDrivers
+    document.getElementById('s-vehicles').textContent  = s.activeVehicles
+    loadAlerts()
+  } catch {}
+}
+
+/* ── Alerts ── */
+async function loadAlerts() {
+  const days = document.getElementById('alert-days')?.value || 30
+  try {
+    const alerts = await api('GET',`/api/admin/alerts?days=${days}`)
+    const el = document.getElementById('alerts-list')
+    document.getElementById('s-alerts').textContent = alerts.length
+    document.getElementById('alert-dot').style.display = alerts.some(a=>a.severity==='expired'||a.severity==='critical') ? 'block' : 'none'
+    if (!alerts.length) { el.innerHTML='<p style="color:#22C55E;font-size:0.85rem">✓ No expiry alerts — all licences are current.</p>'; return }
+    el.innerHTML = alerts.map(a => {
+      const cls = a.severity==='expired'?'alert-expired':a.severity==='critical'?'alert-critical':'alert-warning'
+      const icon = a.severity==='expired'?'🔴':a.severity==='critical'?'🟠':'🟡'
+      const days_text = a.daysLeft<0?`Expired ${Math.abs(a.daysLeft)} days ago`:a.daysLeft===0?'Expires TODAY':`Expires in ${a.daysLeft} days`
+      return `<div class="alert-item ${cls}" style="margin-bottom:6px">
+        ${icon} <strong>${a.name}</strong> — ${a.field} — ${days_text} (${a.expiry})
+        <button class="btn btn-sm btn-outline" style="margin-left:8px" onclick="showTab('${a.category==='driver'?'drivers':'vehicles'}')">View</button>
+      </div>`
+    }).join('')
+  } catch(e) { document.getElementById('alerts-list').innerHTML=`<p style="color:#F87171">${e.message}</p>` }
+}
+
+/* ── Recent bookings on dashboard ── */
+async function loadRecentBookings() {
+  try {
+    const rows = await api('GET','/api/admin/bookings?type=booking')
+    const recent = rows.slice(0,5)
+    document.getElementById('recent-bookings').innerHTML = recent.length===0
+      ? '<p style="color:#94A3B8;font-size:0.85rem">No bookings yet.</p>'
+      : `<div class="tbl-wrap"><div class="tbl-scroll"><table>
+          <thead><tr><th>Ref</th><th>Customer</th><th>Service</th><th>Date</th><th>Status</th></tr></thead>
+          <tbody>${recent.map(b=>`<tr>
+            <td style="color:#A855F7;font-weight:600">BKG-${String(b.id).padStart(5,'0')}</td>
+            <td>${b.firstName} ${b.lastName}</td>
+            <td style="font-size:0.78rem">${b.serviceType||'—'}</td>
+            <td style="color:#94A3B8;font-size:0.78rem">${b.pickupDate||'—'}</td>
+            <td><span class="badge b-${b.status}">${b.status}</span></td>
+          </tr>`).join('')}</tbody>
+        </table></div></div>`
+  } catch {}
+}
+
+/* ════ BOOKINGS ════ */
+async function loadBookings() {
+  const search = document.getElementById('bk-search')?.value||''
+  const status = document.getElementById('bk-status')?.value||'all'
+  try {
+    const rows = await api('GET',`/api/admin/bookings?type=booking&search=${encodeURIComponent(search)}&status=${status}`)
+    document.getElementById('bk-count').textContent = `${rows.length} records`
+    document.getElementById('bk-tbody').innerHTML = rows.length===0
+      ? '<tr class="empty-row"><td colspan="12">No bookings found</td></tr>'
+      : rows.map(b => `<tr>
+          <td style="color:#A855F7;font-weight:700;font-size:0.78rem">BKG-${String(b.id).padStart(5,'0')}</td>
+          <td style="font-size:0.78rem;white-space:nowrap">${b.pickupDate||'—'}<br><span style="color:#94A3B8">${b.pickupTime||''}</span></td>
+          <td><strong style="color:rgba(255,255,255,0.9)">${b.firstName} ${b.lastName}</strong><br><span style="color:#94A3B8;font-size:0.75rem">${b.email}</span></td>
+          <td style="font-size:0.78rem">${b.serviceType||'—'}</td>
+          <td style="font-size:0.78rem;max-width:120px;overflow:hidden;text-overflow:ellipsis">${b.pickupAddress||'—'}</td>
+          <td style="font-size:0.78rem;max-width:120px;overflow:hidden;text-overflow:ellipsis">${b.dropoffAddress||'—'}</td>
+          <td style="font-size:0.75rem;color:#94A3B8">${b.contractType||'—'}</td>
+          <td style="font-size:0.78rem">${b.driverName||'<span style="color:#94A3B8">Unassigned</span>'}</td>
+          <td style="font-size:0.75rem;color:#94A3B8">${b.vehicleName||'—'}</td>
+          <td style="color:#F59E0B;font-weight:600">${b.quotedPrice||'—'}</td>
+          <td><span class="badge b-${b.status}">${b.status}</span></td>
+          <td><button class="btn btn-sm btn-outline" onclick="openBookingDetail(${b.id})">View</button></td>
+        </tr>`).join('')
+  } catch(e) { document.getElementById('bk-tbody').innerHTML=`<tr class="empty-row"><td colspan="12">${e.message}</td></tr>` }
+}
+
+/* ════ QUOTES ════ */
+async function loadQuotes() {
+  const search = document.getElementById('qt-search')?.value||''
+  const status = document.getElementById('qt-status')?.value||'all'
+  try {
+    const rows = await api('GET',`/api/admin/bookings?type=quote&search=${encodeURIComponent(search)}&status=${status}`)
+    document.getElementById('qt-count').textContent = `${rows.length} records`
+    document.getElementById('qt-tbody').innerHTML = rows.length===0
+      ? '<tr class="empty-row"><td colspan="11">No quote requests found</td></tr>'
+      : rows.map(b => `<tr>
+          <td style="color:#F59E0B;font-weight:700;font-size:0.78rem">QUO-${String(b.id).padStart(5,'0')}</td>
+          <td style="font-size:0.75rem;color:#94A3B8;white-space:nowrap">${new Date(b.createdAt).toLocaleDateString('en-GB')}</td>
+          <td><strong>${b.firstName} ${b.lastName}</strong><br><span style="color:#94A3B8;font-size:0.75rem">${b.email}</span></td>
+          <td style="color:#94A3B8">${b.phone}</td>
+          <td style="font-size:0.78rem">${b.serviceInterest||b.serviceType||'—'}</td>
+          <td style="font-size:0.75rem;color:#94A3B8;max-width:160px;overflow:hidden;text-overflow:ellipsis">${b.journeyDetails||'—'}</td>
+          <td style="font-size:0.75rem;color:#94A3B8">${b.callTime||'—'}</td>
+          <td style="font-size:0.75rem;color:#94A3B8">${b.referralSource||'—'}</td>
+          <td style="color:#F59E0B;font-weight:600">${b.quotedPrice||'—'}</td>
+          <td><span class="badge b-${b.status}">${b.status}</span></td>
+          <td><button class="btn btn-sm btn-outline" onclick="openBookingDetail(${b.id})">View</button></td>
+        </tr>`).join('')
+  } catch(e) { document.getElementById('qt-tbody').innerHTML=`<tr class="empty-row"><td colspan="11">${e.message}</td></tr>` }
+}
+
+/* ── Booking detail modal ── */
+async function openBookingDetail(id) {
+  const b = await api('GET',`/api/admin/bookings/${id}`)
+  const isQuote = b.type === 'quote'
+  const prefix  = isQuote ? 'QUO' : 'BKG'
+  document.getElementById('bk-modal-title').textContent = `${prefix}-${String(b.id).padStart(5,'0')} — ${b.firstName} ${b.lastName}`
+
+  const rows = isQuote ? [
+    ['Service Interest', b.serviceInterest||b.serviceType],
+    ['Journey Details',  b.journeyDetails],
+    ['Call Time',        b.callTime],
+    ['Name',    `${b.firstName} ${b.lastName}`],
+    ['Email',    b.email], ['Phone', b.phone],
+    ['Referral', b.referralSource],
+    ['Status',   b.status], ['Quoted Price', b.quotedPrice||'Not set'],
+    ['Admin Notes', b.adminNotes||'None'],
+    ['Received', new Date(b.createdAt).toLocaleString('en-GB')],
+  ] : [
+    ['Date', b.pickupDate], ['Time', b.pickupTime],
+    ['Pick-up', b.pickupAddress], ['Drop-off', b.dropoffAddress],
+    ['Service', b.serviceType], ['Vehicle Pref', b.vehiclePreference||'No preference'],
+    ['Passengers', b.passengers], ['Luggage', b.luggage||0],
+    ['Flight No.', b.flightNumber||'N/A'],
+    ['Special Req.', b.specialRequirements||'None'],
+    ['Name', `${b.firstName} ${b.lastName}`],
+    ['Email', b.email], ['Phone', b.phone],
+    ['Contract', b.contractType], ['Company', b.companyName||'N/A'],
+    ['Status', b.status], ['Quoted Price', b.quotedPrice||'Not set'],
+    ['Driver', b.driverName||'Unassigned'], ['Vehicle', b.vehicleName||'Unassigned'],
+    ['Admin Notes', b.adminNotes||'None'],
+    ['Received', new Date(b.createdAt).toLocaleString('en-GB')],
+  ]
+
+  document.getElementById('bk-modal-body').innerHTML = `
+    <div class="detail-grid">${rows.map(([k,v])=>`<div class="detail-row"><span class="dk">${k}</span><span class="dv">${v||'—'}</span></div>`).join('')}</div>`
+
+  // Build driver/vehicle dropdowns for assignment
+  const driverOpts = `<option value="">— Unassigned —</option>${allDrivers.filter(d=>d.status==='active').map(d=>`<option value="${d.id}" ${b.assignedDriverId===d.id?'selected':''}>${d.firstName} ${d.lastName}</option>`).join('')}`
+  const vehicleOpts= `<option value="">— Unassigned —</option>${allVehicles.filter(v=>v.status==='active').map(v=>`<option value="${v.id}" ${b.assignedVehicleId===v.id?'selected':''}>${v.make} ${v.model} (${v.registration})</option>`).join('')}`
+
+  document.getElementById('bk-modal-actions').innerHTML = `
+    <div style="margin-top:20px;padding-top:16px;border-top:1px solid rgba(168,85,247,0.12)">
+      <p style="font-size:0.68rem;color:#A855F7;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:12px">Update Booking</p>
+      <div class="modal-grid cols3" style="gap:10px">
+        <div class="field"><label>Status</label>
+          <select id="bk-new-status"><option value="">— Keep —</option><option>pending</option><option>confirmed</option><option>completed</option><option>cancelled</option></select>
+        </div>
+        <div class="field"><label>Quoted Price</label><input id="bk-new-price" value="${b.quotedPrice||''}" placeholder="£0.00"/></div>
+        <div class="field"><label>Assign Driver</label><select id="bk-new-driver">${driverOpts}</select></div>
+        <div class="field"><label>Assign Vehicle</label><select id="bk-new-vehicle">${vehicleOpts}</select></div>
+      </div>
+      <div class="field"><label>Admin Notes</label><textarea id="bk-new-notes" rows="2">${b.adminNotes||''}</textarea></div>
+      <div style="display:flex;gap:10px;margin-top:10px">
+        <button class="btn btn-primary" onclick="saveBooking(${b.id})">Save Changes</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteBooking(${b.id})">Delete</button>
+      </div>
+    </div>`
+
+  document.getElementById('bk-modal-overlay').classList.add('open')
+}
+
+async function saveBooking(id) {
+  const status      = document.getElementById('bk-new-status').value  || undefined
+  const quotedPrice = document.getElementById('bk-new-price').value   || undefined
+  const adminNotes  = document.getElementById('bk-new-notes').value   || undefined
+  const assignedDriverId  = document.getElementById('bk-new-driver').value  || undefined
+  const assignedVehicleId = document.getElementById('bk-new-vehicle').value || undefined
+  await api('PATCH',`/api/admin/bookings/${id}`,{status,quotedPrice,adminNotes,assignedDriverId,assignedVehicleId})
+  document.getElementById('bk-modal-overlay').classList.remove('open')
+  loadBookings(); loadQuotes(); loadRecentBookings()
+}
+
+async function deleteBooking(id) {
+  if (!confirm('Delete this record?')) return
+  await api('DELETE',`/api/admin/bookings/${id}`)
+  document.getElementById('bk-modal-overlay').classList.remove('open')
+  loadBookings(); loadQuotes(); loadStats()
+}
+
+/* ════ DRIVERS ════ */
+async function loadDrivers() {
+  const search = document.getElementById('dr-search')?.value||''
+  const status = document.getElementById('dr-status')?.value||'all'
+  try {
+    const rows = await api('GET',`/api/admin/drivers?search=${encodeURIComponent(search)}&status=${status}`)
+    allDrivers = rows
+    document.getElementById('dr-count').textContent = `${rows.length} drivers`
+    const today = new Date().toISOString().split('T')[0]
+    document.getElementById('dr-tbody').innerHTML = rows.length===0
+      ? '<tr class="empty-row"><td colspan="11">No drivers found</td></tr>'
+      : rows.map(d => {
+          const expClass = (expiry) => {
+            if (!expiry) return ''
+            if (expiry < today) return 'color:#F87171'
+            const days = Math.ceil((new Date(expiry)-new Date(today))/86400000)
+            return days<=30 ? 'color:#FBBF24' : 'color:#22C55E'
+          }
+          return `<tr>
+            <td><strong style="color:rgba(255,255,255,0.9)">${d.firstName} ${d.lastName}</strong><br><span style="color:#94A3B8;font-size:0.75rem">${d.email||''}</span></td>
+            <td style="color:#94A3B8">${d.phone}</td>
+            <td style="font-size:0.78rem">${d.dvlaLicenceNumber||'—'}</td>
+            <td style="font-size:0.78rem;${expClass(d.dvlaExpiry)}">${d.dvlaExpiry||'—'}</td>
+            <td style="font-size:0.78rem">${d.pcoLicenceNumber||'—'}</td>
+            <td style="font-size:0.78rem;${expClass(d.pcoExpiry)}">${d.pcoExpiry||'—'}</td>
+            <td style="font-size:0.78rem">${d.dbsNumber||'—'}</td>
+            <td style="font-size:0.78rem;${expClass(d.dbsExpiry)}">${d.dbsExpiry||'—'}</td>
+            <td><span class="badge b-${d.status}">${d.status}</span></td>
+            <td style="font-size:0.75rem">
+              ${d.dvlaLicenceFile?`<a class="file-link" href="${API}/uploads/${d.dvlaLicenceFile}" target="_blank">DVLA</a> `:''}
+              ${d.pcoLicenceFile ?`<a class="file-link" href="${API}/uploads/${d.pcoLicenceFile}"  target="_blank">PCO</a> `:''}
+              ${d.dbsCertificateFile?`<a class="file-link" href="${API}/uploads/${d.dbsCertificateFile}" target="_blank">DBS</a>`:''}
+            </td>
+            <td style="display:flex;gap:6px">
+              <button class="btn btn-sm btn-outline" onclick="editDriver(${d.id})">Edit</button>
+              <button class="btn btn-sm btn-danger"  onclick="deleteDriver(${d.id})">Del</button>
+            </td>
+          </tr>`
+        }).join('')
+  } catch(e) { document.getElementById('dr-tbody').innerHTML=`<tr class="empty-row"><td colspan="11">${e.message}</td></tr>` }
+}
+
+function openDriverModal(driver=null) {
+  editingDriverId = driver ? driver.id : null
+  document.getElementById('dr-modal-title').textContent = driver ? `Edit Driver — ${driver.firstName} ${driver.lastName}` : 'Add Driver'
+  const form = document.getElementById('dr-form')
+  form.reset()
+  if (driver) {
+    Object.entries(driver).forEach(([k,v]) => {
+      const el = form.elements[k]
+      if (el && v) el.value = v
+    })
+  }
+  document.getElementById('dr-modal-overlay').classList.add('open')
+}
+
+async function editDriver(id) {
+  const d = allDrivers.find(x=>x.id===id) || await api('GET',`/api/admin/drivers/${id}`)
+  openDriverModal(d)
+}
+
+async function submitDriver(e) {
+  e.preventDefault()
+  const form = new FormData(document.getElementById('dr-form'))
+  try {
+    if (editingDriverId) {
+      await api('PATCH',`/api/admin/drivers/${editingDriverId}`, form, true)
+    } else {
+      await api('POST','/api/admin/drivers', form, true)
+    }
+    document.getElementById('dr-modal-overlay').classList.remove('open')
+    loadDrivers(); loadStats()
+    allDrivers = await api('GET','/api/admin/drivers')
+  } catch(err) { alert(err.message) }
+}
+
+async function deleteDriver(id) {
+  if (!confirm('Delete this driver record?')) return
+  await api('DELETE',`/api/admin/drivers/${id}`)
+  loadDrivers(); loadStats()
+}
+
+/* ════ VEHICLES ════ */
+async function loadVehicles() {
+  const search = document.getElementById('vh-search')?.value||''
+  const status = document.getElementById('vh-status')?.value||'all'
+  try {
+    const rows = await api('GET',`/api/admin/vehicles?search=${encodeURIComponent(search)}&status=${status}`)
+    allVehicles = rows
+    document.getElementById('vh-count').textContent = `${rows.length} vehicles`
+    const today = new Date().toISOString().split('T')[0]
+    document.getElementById('vh-tbody').innerHTML = rows.length===0
+      ? '<tr class="empty-row"><td colspan="12">No vehicles found</td></tr>'
+      : rows.map(v => {
+          const expClass = (expiry) => {
+            if (!expiry) return ''
+            if (expiry < today) return 'color:#F87171'
+            const days = Math.ceil((new Date(expiry)-new Date(today))/86400000)
+            return days<=30 ? 'color:#FBBF24' : 'color:#22C55E'
+          }
+          return `<tr>
+            <td style="font-weight:700;color:#A855F7;font-family:monospace">${v.registration}</td>
+            <td><strong style="color:rgba(255,255,255,0.9)">${v.make} ${v.model}</strong><br><span style="color:#94A3B8;font-size:0.75rem">${v.year||''} ${v.colour||''}</span></td>
+            <td style="font-size:0.78rem">${v.vehicleType||'—'}</td>
+            <td style="text-align:center">${v.seats||'—'}</td>
+            <td style="text-align:center">${v.isWAV?'<span style="color:#22C55E;font-weight:700">✓ WAV</span>':'—'}</td>
+            <td style="font-size:0.78rem;${expClass(v.motExpiry)}">${v.motExpiry||'—'}</td>
+            <td style="font-size:0.78rem;${expClass(v.insuranceExpiry)}">${v.insuranceExpiry||'—'}</td>
+            <td style="font-size:0.78rem;${expClass(v.pcoPlateExpiry)}">${v.pcoPlateExpiry||'—'}</td>
+            <td style="font-size:0.78rem;color:#94A3B8">${v.driverName||'—'}</td>
+            <td><span class="badge b-${v.status}">${v.status}</span></td>
+            <td style="font-size:0.75rem">
+              ${v.motCertFile  ?`<a class="file-link" href="${API}/uploads/${v.motCertFile}"   target="_blank">MOT</a> `:''}
+              ${v.insuranceFile?`<a class="file-link" href="${API}/uploads/${v.insuranceFile}" target="_blank">INS</a> `:''}
+              ${v.pcoPlateFile ?`<a class="file-link" href="${API}/uploads/${v.pcoPlateFile}"  target="_blank">PCO</a>`:''}
+            </td>
+            <td style="display:flex;gap:6px">
+              <button class="btn btn-sm btn-outline" onclick="editVehicle(${v.id})">Edit</button>
+              <button class="btn btn-sm btn-danger"  onclick="deleteVehicle(${v.id})">Del</button>
+            </td>
+          </tr>`
+        }).join('')
+  } catch(e) { document.getElementById('vh-tbody').innerHTML=`<tr class="empty-row"><td colspan="12">${e.message}</td></tr>` }
+}
+
+function openVehicleModal(vehicle=null) {
+  editingVehicleId = vehicle?.id || null
+  document.getElementById('vh-modal-title').textContent = vehicle ? `Edit Vehicle — ${vehicle.registration}` : 'Add Vehicle'
+  const form = document.getElementById('vh-form')
+  form.reset()
+
+  // Populate driver dropdown
+  const drSelect = document.getElementById('vh-driver-select')
+  drSelect.innerHTML = `<option value="">— None —</option>${allDrivers.filter(d=>d.status==='active').map(d=>`<option value="${d.id}" ${vehicle?.assignedDriverId===d.id?'selected':''}>${d.firstName} ${d.lastName}</option>`).join('')}`
+
+  if (vehicle) {
+    Object.entries(vehicle).forEach(([k,v]) => {
+      const el = form.elements[k]
+      if (el && v!==null && v!==undefined) el.value = v
+    })
+  }
+  document.getElementById('vh-modal-overlay').classList.add('open')
+}
+
+async function editVehicle(id) {
+  const v = allVehicles.find(x=>x.id===id)
+  openVehicleModal(v)
+}
+
+async function submitVehicle(e) {
+  e.preventDefault()
+  const form = new FormData(document.getElementById('vh-form'))
+  try {
+    if (editingVehicleId) {
+      await api('PATCH',`/api/admin/vehicles/${editingVehicleId}`, form, true)
+    } else {
+      await api('POST','/api/admin/vehicles', form, true)
+    }
+    document.getElementById('vh-modal-overlay').classList.remove('open')
+    loadVehicles(); loadStats()
+    allVehicles = await api('GET','/api/admin/vehicles')
+  } catch(err) { alert(err.message) }
+}
+
+async function deleteVehicle(id) {
+  if (!confirm('Delete this vehicle record?')) return
+  await api('DELETE',`/api/admin/vehicles/${id}`)
+  loadVehicles(); loadStats()
+}
+
+/* ════ ROUTES ════ */
+async function loadRoutes() {
+  const search   = document.getElementById('rt-search')?.value||''
+  const status   = document.getElementById('rt-status')?.value||'all'
+  const dateFrom = document.getElementById('rt-date-from')?.value||''
+  const dateTo   = document.getElementById('rt-date-to')?.value||''
+  let   qs       = `?search=${encodeURIComponent(search)}&status=${status}`
+  if (dateFrom) qs += `&dateFrom=${dateFrom}`
+  if (dateTo)   qs += `&dateTo=${dateTo}`
+  try {
+    const rows = await api('GET',`/api/admin/routes${qs}`)
+    document.getElementById('rt-count').textContent = `${rows.length} routes`
+    document.getElementById('rt-tbody').innerHTML = rows.length===0
+      ? '<tr class="empty-row"><td colspan="12">No routes found</td></tr>'
+      : rows.map(r => `<tr>
+          <td style="color:#A855F7;font-size:0.78rem">${r.routeName||`RTE-${String(r.id).padStart(4,'0')}`}</td>
+          <td style="font-size:0.78rem;white-space:nowrap">${r.routeDate}</td>
+          <td style="font-size:0.78rem;color:#94A3B8">${r.departureTime}</td>
+          <td style="font-size:0.78rem">${r.passengerName||'—'}</td>
+          <td style="font-size:0.75rem;max-width:120px;overflow:hidden;text-overflow:ellipsis">${r.pickupAddress}</td>
+          <td style="font-size:0.75rem;max-width:120px;overflow:hidden;text-overflow:ellipsis">${r.dropoffAddress}</td>
+          <td style="font-size:0.78rem">${r.driverName||'<span style="color:#94A3B8">Unassigned</span>'}</td>
+          <td style="font-size:0.75rem;color:#94A3B8">${r.vehicleName||'—'}</td>
+          <td style="font-size:0.75rem">${r.serviceType||'—'}</td>
+          <td style="color:#F59E0B;font-weight:600">${r.fareCharged||'—'}</td>
+          <td><span class="badge b-${r.status.replace('-','')}">${r.status}</span></td>
+          <td style="display:flex;gap:6px">
+            <button class="btn btn-sm btn-outline" onclick="editRoute(${r.id})">Edit</button>
+            <button class="btn btn-sm btn-danger"  onclick="deleteRoute(${r.id})">Del</button>
+          </td>
+        </tr>`).join('')
+  } catch(e) { document.getElementById('rt-tbody').innerHTML=`<tr class="empty-row"><td colspan="12">${e.message}</td></tr>` }
+}
+
+async function openRouteModal(route=null) {
+  editingRouteId = route?.id || null
+  document.getElementById('rt-modal-title').textContent = route ? `Edit Route — ${route.routeDate}` : 'Add Route / Trip'
+  const form = document.getElementById('rt-form')
+  form.reset()
+
+  // Populate dropdowns
+  document.getElementById('rt-driver-select').innerHTML  = `<option value="">— Select —</option>${allDrivers.filter(d=>d.status==='active').map(d=>`<option value="${d.id}" ${route?.driverId===d.id?'selected':''}>${d.firstName} ${d.lastName}</option>`).join('')}`
+  document.getElementById('rt-vehicle-select').innerHTML = `<option value="">— Select —</option>${allVehicles.filter(v=>v.status==='active').map(v=>`<option value="${v.id}" ${route?.vehicleId===v.id?'selected':''}>${v.make} ${v.model} (${v.registration})</option>`).join('')}`
+  document.getElementById('rt-booking-select').innerHTML = `<option value="">— None —</option>${allBookings.slice(0,50).map(b=>`<option value="${b.id}" ${route?.bookingId===b.id?'selected':''}>BKG-${String(b.id).padStart(5,'0')} — ${b.firstName} ${b.lastName}</option>`).join('')}`
+
+  if (route) Object.entries(route).forEach(([k,v]) => { const el=form.elements[k]; if(el&&v) el.value=v })
+  document.getElementById('rt-modal-overlay').classList.add('open')
+}
+
+async function editRoute(id) {
+  const all = await api('GET','/api/admin/routes')
+  const r   = all.find(x=>x.id===id)
+  openRouteModal(r)
+}
+
+async function submitRoute(e) {
+  e.preventDefault()
+  const form = document.getElementById('rt-form')
+  const data = Object.fromEntries(new FormData(form))
+  try {
+    if (editingRouteId) {
+      await api('PATCH',`/api/admin/routes/${editingRouteId}`, data)
+    } else {
+      await api('POST','/api/admin/routes', data)
+    }
+    document.getElementById('rt-modal-overlay').classList.remove('open')
+    loadRoutes()
+  } catch(err) { alert(err.message) }
+}
+
+async function deleteRoute(id) {
+  if (!confirm('Delete this route record?')) return
+  await api('DELETE',`/api/admin/routes/${id}`)
+  loadRoutes()
+}
+
+/* ════ CSV EXPORT ════ */
+async function exportCSV() {
+  const tab = document.querySelector('.tab-btn.active').textContent.trim().toLowerCase()
+  let rows, headers, mapFn
+  if (tab.includes('booking')) {
+    rows = await api('GET','/api/admin/bookings?type=booking')
+    headers = ['Ref','Date','Time','Customer','Email','Phone','Service','Pick-up','Drop-off','Contract','Driver','Vehicle','Price','Status']
+    mapFn = b => [`BKG-${String(b.id).padStart(5,'0')}`,b.pickupDate,b.pickupTime,`${b.firstName} ${b.lastName}`,b.email,b.phone,b.serviceType,b.pickupAddress,b.dropoffAddress,b.contractType,b.driverName,b.vehicleName,b.quotedPrice,b.status]
+  } else if (tab.includes('quote')) {
+    rows = await api('GET','/api/admin/bookings?type=quote')
+    headers = ['Ref','Received','Customer','Email','Phone','Service','Details','Status','Price']
+    mapFn = q => [`QUO-${String(q.id).padStart(5,'0')}`,new Date(q.createdAt).toLocaleDateString('en-GB'),`${q.firstName} ${q.lastName}`,q.email,q.phone,q.serviceInterest,q.journeyDetails,q.status,q.quotedPrice]
+  } else if (tab.includes('driver')) {
+    rows = await api('GET','/api/admin/drivers')
+    headers = ['Name','Phone','Email','DVLA No.','DVLA Expiry','PCO No.','PCO Expiry','DBS No.','DBS Expiry','Status']
+    mapFn = d => [`${d.firstName} ${d.lastName}`,d.phone,d.email,d.dvlaLicenceNumber,d.dvlaExpiry,d.pcoLicenceNumber,d.pcoExpiry,d.dbsNumber,d.dbsExpiry,d.status]
+  } else if (tab.includes('vehicle')) {
+    rows = await api('GET','/api/admin/vehicles')
+    headers = ['Registration','Make','Model','Year','Type','Seats','WAV','MOT Expiry','Insurance','PCO Plate Expiry','Status']
+    mapFn = v => [v.registration,v.make,v.model,v.year,v.vehicleType,v.seats,v.isWAV?'Yes':'No',v.motExpiry,v.insuranceExpiry,v.pcoPlateExpiry,v.status]
+    } else if (tab.includes('recruit')) {
+  rows = await api('GET','/api/admin/recruitment')
+  headers = ['Ref','Date','Name','Email','Phone','Role','CV','Right to Work','Availability']
+  mapFn = r => [
+    `REC-${String(r.id).padStart(5,'0')}`,
+    new Date(r.createdAt).toLocaleDateString('en-GB'),
+    `${r.firstName} ${r.lastName}`,
+    r.email, r.phone,
+    r.serviceInterest,
+    r.details?.cvFile ? 'Uploaded' : 'Missing',
+    r.details?.rightToWork || '—',
+    r.details?.availability || '—',
+  ]
+  } else {
+    rows = await api('GET','/api/admin/routes')
+    headers = ['Route','Date','Time','Passenger','Pick-up','Drop-off','Driver','Vehicle','Service','Fare','Status']
+    mapFn = r => [r.routeName,r.routeDate,r.departureTime,r.passengerName,r.pickupAddress,r.dropoffAddress,r.driverName,r.vehicleName,r.serviceType,r.fareCharged,r.status]
+  }
+  const csv  = [headers,...rows.map(mapFn)].map(r=>r.map(v=>`"${v||''}"`).join(',')).join('\n')
+  const blob = new Blob([csv],{type:'text/csv'})
+  const a    = document.createElement('a')
+  a.href = URL.createObjectURL(blob)
+  a.download = `haraka-${tab.replace(/\s/g,'-')}-${Date.now()}.csv`
+  a.click()
+}
+
+/* ════ HELPERS ════ */
+function openModal(id) { document.getElementById(id).classList.add('open') }
+function closeOverlay(e, id) { if(e.target===document.getElementById(id)) document.getElementById(id).classList.remove('open') }
+
+// Auto-refresh alerts every 5 minutes
+setInterval(loadAlerts, 300000)
+/* ════ RECRUITMENT ════ */
+async function loadRecruitment() {
+  const search = document.getElementById('rec-search')?.value || ''
+  try {
+    const rows = await api('GET', `/api/admin/recruitment?search=${encodeURIComponent(search)}`)
+    document.getElementById('rec-count').textContent = `${rows.length} applications`
+
+    document.getElementById('rec-tbody').innerHTML = rows.length === 0
+      ? '<tr class="empty-row"><td colspan="9">No applications yet</td></tr>'
+      : rows.map(r => {
+          const docs = r.details || {}
+          const docLinks = [
+            { key: 'cvFile',             label: 'CV'          },
+            { key: 'dbsFile',            label: 'DBS'         },
+            { key: 'firstAidFile',       label: 'First Aid'   },
+            { key: 'safeguardingFile',   label: 'Safeguarding'},
+            { key: 'pcoLicenceFile',     label: 'PCO'         },
+            { key: 'dvlaLicenceFile',    label: 'DVLA'        },
+            { key: 'senTrainingFile',    label: 'SEN'         },
+            { key: 'movingHandlingFile', label: 'M&H'         },
+            { key: 'otherDocFile',       label: 'Other'       },
+          ].filter(d => docs[d.key])
+
+          return `<tr>
+            <td style="color:#A855F7;font-weight:700;font-size:0.78rem">REC-${String(r.id).padStart(5,'0')}</td>
+            <td style="font-size:0.75rem;color:#94A3B8">${new Date(r.createdAt).toLocaleDateString('en-GB')}</td>
+            <td><strong style="color:rgba(255,255,255,0.9)">${r.firstName} ${r.lastName}</strong></td>
+            <td style="color:#94A3B8;font-size:0.78rem">${r.email}</td>
+            <td style="color:#94A3B8;font-size:0.78rem">${r.phone}</td>
+            <td style="font-size:0.78rem">${r.serviceInterest || '—'}</td>
+            <td style="font-size:0.75rem">
+              ${docs.cvFile
+                ? `<a class="file-link" href="${API}/recruitment-docs/${docs.cvFile}" target="_blank">📄 Download CV</a>`
+                : '<span style="color:#F87171">Missing</span>'}
+            </td>
+            <td style="font-size:0.75rem">
+              ${docLinks.filter(d => d.key !== 'cvFile').map(d =>
+                `<a class="file-link" href="${API}/recruitment-docs/${docs[d.key]}" target="_blank">${d.label}</a>`
+              ).join(' ')}
+              ${docLinks.filter(d => d.key !== 'cvFile').length === 0 ? '<span style="color:#94A3B8">None uploaded</span>' : ''}
+            </td>
+            <td>
+              <button class="btn btn-sm btn-outline" onclick="openRecruitmentDetail(${r.id})">View</button>
+            </td>
+          </tr>`
+        }).join('')
+  } catch(e) {
+    document.getElementById('rec-tbody').innerHTML = `<tr class="empty-row"><td colspan="9">${e.message}</td></tr>`
+  }
+}
+
+async function openRecruitmentDetail(id) {
+  const rows = await api('GET', '/api/admin/recruitment')
+  const r    = rows.find(x => x.id === id)
+  if (!r) return
+  const d    = r.details || {}
+
+  document.getElementById('rec-modal-title').textContent =
+    `REC-${String(r.id).padStart(5,'0')} — ${r.firstName} ${r.lastName}`
+
+  const docFields = [
+    { key: 'cvFile',             label: 'CV'                    },
+    { key: 'dbsFile',            label: 'DBS Certificate'       },
+    { key: 'firstAidFile',       label: 'First Aid Certificate' },
+    { key: 'safeguardingFile',   label: 'Safeguarding Cert'     },
+    { key: 'pcoLicenceFile',     label: 'PCO Licence'           },
+    { key: 'dvlaLicenceFile',    label: 'DVLA Licence'          },
+    { key: 'senTrainingFile',    label: 'SEN Training'          },
+    { key: 'movingHandlingFile', label: 'Moving & Handling'     },
+    { key: 'otherDocFile',       label: 'Other Document'        },
+  ]
+
+  const infoRows = [
+    ['Reference',         `REC-${String(r.id).padStart(5,'0')}`],
+    ['Name',              `${r.firstName} ${r.lastName}`],
+    ['Email',             r.email],
+    ['Phone',             r.phone],
+    ['Role Applied',      r.serviceInterest],
+    ['Address',           d.address || '—'],
+    ['Right to Work',     d.rightToWork || '—'],
+    ['Employment Status', d.employmentStatus || '—'],
+    ['Availability',      d.availability || '—'],
+    ['PCO Licence No.',   d.pcoLicence || '—'],
+    ['DVLA Licence No.',  d.dvlaLicence || '—'],
+    ['DVLA Points',       d.dvlaPoints || '—'],
+    ['DBS Number',        d.dbsNumber || '—'],
+    ['DBS Update Service',d.dbsUpdateService || '—'],
+    ['Safeguarding',      d.safeguardingTraining || '—'],
+    ['First Aid',         d.firstAid || '—'],
+    ['SEN Experience',    d.senExperience || '—'],
+    ['Moving & Handling', d.movingHandling || '—'],
+    ['Autism Awareness',  d.autismAwareness || '—'],
+    ['Referral Source',   r.referralSource || '—'],
+    ['SPROC Declaration', d.sprocDeclaration ? 'Confirmed' : '—'],
+    ['Additional Info',   d.additionalInfo || '—'],
+    ['Applied',           new Date(r.createdAt).toLocaleString('en-GB')],
+  ]
+
+  document.getElementById('rec-modal-body').innerHTML = `
+    <div class="detail-grid" style="margin-bottom:20px">
+      ${infoRows.map(([k,v]) => `
+        <div class="detail-row">
+          <span class="dk">${k}</span>
+          <span class="dv">${v}</span>
+        </div>`).join('')}
+    </div>
+
+    <div style="padding:14px;background:rgba(168,85,247,0.06);border:1px solid rgba(168,85,247,0.2);border-radius:10px">
+      <p style="font-size:0.7rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#A855F7;margin-bottom:12px">
+        Uploaded Documents
+      </p>
+      ${docFields.map(({ key, label }) => `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+          <span style="font-size:0.82rem;color:#94A3B8">${label}</span>
+          ${d[key]
+            ? `<a class="file-link" href="${API}/recruitment-docs/${d[key]}" target="_blank"
+                style="padding:5px 12px;background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.3);border-radius:4px">
+                📄 Download
+               </a>`
+            : '<span style="font-size:0.75rem;color:#555">Not uploaded</span>'
+          }
+        </div>`).join('')}
+    </div>`
+
+  document.getElementById('rec-modal-overlay').classList.add('open')
+}
+/* ════ DOCUMENT SCANNER ════ */
+let scanFile       = null
+let scannedRecords = []
+let currentExtracted = null
+
+function initScanner() {
+  // Nothing needed on init
+}
+
+function handleScanDrop(e) {
+  e.preventDefault()
+  document.getElementById('drop-zone').style.borderColor = 'rgba(168,85,247,0.4)'
+  const file = e.dataTransfer.files[0]
+  if (file) handleScanFile(file)
+}
+
+function handleScanFile(file) {
+  if (!file) return
+  const allowed = ['application/pdf','application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
+  if (!allowed.includes(file.type) && !file.name.match(/\.(pdf|doc|docx)$/i)) {
+    alert('Only PDF and Word (.docx) files accepted')
+    return
+  }
+  if (file.size > 10 * 1024 * 1024) {
+    alert('File must be under 10MB')
+    return
+  }
+  scanFile = file
+  document.getElementById('scan-file-preview').style.display = 'block'
+  document.getElementById('scan-file-name').textContent = file.name
+  document.getElementById('scan-file-size').textContent =
+    `${(file.size / 1024).toFixed(1)} KB · ${file.type || 'document'}`
+}
+
+function setStatus(msg, type='info') {
+  const el = document.getElementById('scan-status')
+  el.style.display = 'block'
+  el.style.background = type==='error' ? 'rgba(248,113,113,0.1)'
+                      : type==='success'? 'rgba(34,197,94,0.1)'
+                      : 'rgba(168,85,247,0.1)'
+  el.style.border = `1px solid ${type==='error'?'rgba(248,113,113,0.3)':type==='success'?'rgba(34,197,94,0.3)':'rgba(168,85,247,0.3)'}`
+  el.style.color  = type==='error'?'#F87171':type==='success'?'#22C55E':'#A855F7'
+  el.textContent  = msg
+}
+
+async function runScan() {
+  if (!scanFile) { alert('Please select a document first'); return }
+  const category = document.getElementById('scan-category').value
+  const btn = document.getElementById('scan-btn')
+  btn.disabled = true
+  btn.textContent = '⏳ Reading…'
+  setStatus('Reading document…', 'info')
+
+  try {
+    const isPDF = scanFile.type === 'application/pdf' || scanFile.name.endsWith('.pdf')
+    let   text  = ''
+
+    if (isPDF) {
+      // ── METHOD 1: PDF.js text extraction (digital PDFs) ──
+      setStatus('Extracting text from PDF…', 'info')
+      text = await extractPDFText(scanFile)
+
+      // ── METHOD 2: If PDF.js got very little text, try Tesseract OCR ──
+      if (text.trim().length < 80) {
+        setStatus('PDF appears to be a scanned image — running OCR…', 'info')
+        text = await extractWithTesseract(scanFile)
+      }
+    } else {
+      // Word doc — manual form fallback
+      setStatus('Word document detected — please fill the fields manually below.', 'info')
+      text = `[Word document: ${scanFile.name}]`
+    }
+
+    // ── METHOD 3: If still very little text — show manual form ──
+    if (!text || text.trim().length < 30) {
+      setStatus('Could not extract text automatically. Manual entry form shown below.', 'info')
+      renderManualForm(category)
+      btn.disabled    = false
+      btn.textContent = '🔍 Scan & Extract Data'
+      return
+    }
+
+    // ── Parse extracted text into fields ──
+    setStatus('Parsing extracted data…', 'info')
+    const extracted = parseExtractedText(text, category)
+    const hasData   = Object.values(extracted).some(v => v && v !== null)
+
+    if (!hasData) {
+      setStatus('Text found but could not identify key fields. Manual entry form shown — paste or type the values.', 'info')
+      renderManualForm(category, text)
+    } else {
+      const foundCount = Object.values(extracted).filter(v => v).length
+      setStatus(`✓ Extracted ${foundCount} fields automatically. Review below — red fields were not found.`, 'success')
+      currentExtracted = { ...extracted, _category: category, _filename: scanFile.name, _scannedAt: new Date().toISOString() }
+      renderExtractedFields(extracted, category)
+    }
+
+  } catch(err) {
+    setStatus(`Could not read document automatically. Manual entry form shown below.`, 'info')
+    renderManualForm(category)
+  } finally {
+    btn.disabled    = false
+    btn.textContent = '🔍 Scan & Extract Data'
+  }
+}
+// ── PDF.js text extraction ──────────────────────────────────────
+async function extractPDFText(file) {
+  const pdfjsLib = window['pdfjs-dist/build/pdf']
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
+
+  const arrayBuffer = await file.arrayBuffer()
+  const pdf         = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
+  let   fullText    = ''
+
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page    = await pdf.getPage(i)
+    const content = await page.getTextContent()
+    fullText     += content.items.map(item => item.str).join(' ') + '\n'
+  }
+  return fullText
+}
+
+// ── Tesseract.js OCR ────────────────────────────────────────────
+async function extractWithTesseract(file) {
+  setStatus('Running OCR — this may take 20-40 seconds for the first scan…', 'info')
+  const url    = URL.createObjectURL(file)
+  const result = await Tesseract.recognize(url, 'eng', {
+    logger: m => {
+      if (m.status === 'recognizing text') {
+        setStatus(`OCR progress: ${Math.round(m.progress * 100)}%…`, 'info')
+      }
+    }
+  })
+  URL.revokeObjectURL(url)
+  return result.data.text
+}
+
+// ── Text parser — extracts fields using regex patterns ──────────
+function parseExtractedText(text, category) {
+  const t = text.replace(/\s+/g, ' ')
+
+  // ── Common patterns ──
+  const patterns = {
+    // Names
+    fullName: [
+      /(?:name|full name|surname|applicant)[:\s]+([A-Z][a-z]+ [A-Z][a-z]+(?:\s[A-Z][a-z]+)?)/i,
+      /([A-Z]{2,}(?:\s[A-Z]{2,})+)/,
+    ],
+    dateOfBirth: [
+      /(?:date of birth|d\.o\.b|dob|born)[:\s]+(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})/i,
+      /(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{4})/,
+    ],
+    address: [
+      /(?:address|residing at|resident)[:\s]+([A-Za-z0-9\s,]+(?:London|SW|SE|NW|NE|E\d|W\d|N\d|EC|WC)[A-Za-z0-9\s]+)/i,
+    ],
+    email: [
+      /([a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,})/,
+    ],
+    phone: [
+      /(?:tel|phone|mobile|contact)[:\s]*([\d\s\+\-\(\)]{10,})/i,
+      /(07\d{9}|\+44\s?\d{10})/,
+    ],
+    nationalInsuranceNumber: [
+      /(?:NI|N\.I\.|national insurance)[:\s#]*([A-Z]{2}\s?\d{6}\s?[A-Z])/i,
+      /([A-Z]{2}\s?\d{6}\s?[A-Z])/,
+    ],
+
+    // PCO / TFL Licence
+    pcoLicenceNumber: [
+      /(?:PCO|private hire|operator licence|TfL)[:\s#]*(\d{5,12})/i,
+      /licence\s*(?:no|number|#)[:\s]*(\d{6,12})/i,
+    ],
+    pcoLicenceExpiry: [
+      /(?:PCO|private hire licence)[^.]*(?:expir|valid until|expires?)[:\s]+(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})/i,
+    ],
+
+    // DVLA
+    dvlaLicenceNumber: [
+      /(?:driving licence|DVLA|driver(?:'s)? licence)[:\s#]*([A-Z]{5}\d{6}[A-Z]{2}\d[A-Z]{2})/i,
+      /([A-Z]{5}\d{6}[A-Z0-9]{3}[A-Z]{2})/,
+    ],
+    dvlaLicenceExpiry: [
+      /(?:driving licence|DVLA)[^.]*(?:expir|valid until)[:\s]+(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})/i,
+      /4b[:\s]+(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})/i,
+    ],
+    dvlaLicenceIssueDate: [
+      /(?:issue date|issued|date issued)[:\s]+(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})/i,
+      /4a[:\s]+(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})/i,
+    ],
+    dvlaEntitlements: [
+      /(?:entitlements?|categories|permitted to drive)[:\s]+([A-Z0-9\s,\/+]+)/i,
+      /(?:9\.|categories?)[:\s]+([A-Z][0-9]?(?:,\s*[A-Z][0-9]?)+)/i,
+    ],
+
+    // DBS
+    dbsCertificateNumber: [
+      /(?:DBS|disclosure)[^.]*(?:no|number|certificate)[:\s#]*(\d{12}|\d{6,15})/i,
+      /certificate\s*(?:no|number)[:\s]*(\d{10,15})/i,
+    ],
+    dbsIssueDate: [
+      /(?:DBS|disclosure)[^.]*(?:date|issued)[:\s]+(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})/i,
+    ],
+    dbsExpiryDate: [
+      /(?:DBS|disclosure)[^.]*(?:expir|valid until)[:\s]+(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})/i,
+    ],
+    dbsLevel: [
+      /(?:enhanced|standard|basic)\s+(?:DBS|disclosure)/i,
+    ],
+
+    // Vehicle
+    vehicleRegistration: [
+      /(?:registration|reg|vehicle reg|number plate)[:\s]+([A-Z]{2}\d{2}\s?[A-Z]{3})/i,
+      /([A-Z]{2}\d{2}\s?[A-Z]{3})/,
+    ],
+    make: [
+      /(?:make|manufacturer|vehicle make)[:\s]+([A-Z][a-zA-Z]+)/i,
+    ],
+    model: [
+      /(?:model)[:\s]+([A-Z][a-zA-Z0-9\s]+)/i,
+    ],
+    year: [
+      /(?:year|year of manufacture)[:\s]+(20\d{2}|19\d{2})/i,
+      /(20\d{2})/,
+    ],
+    colour: [
+      /(?:colour|color)[:\s]+([A-Za-z]+)/i,
+    ],
+    vin: [
+      /(?:VIN|chassis|vehicle identification)[:\s#]+([A-HJ-NPR-Z0-9]{17})/i,
+    ],
+    motExpiryDate: [
+      /(?:MOT)[^.]*(?:expir|valid until|expires?)[:\s]+(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})/i,
+      /(?:test expir)[:\s]+(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})/i,
+    ],
+    motCertificateNumber: [
+      /(?:MOT|test)[^.]*(?:certificate|cert)[^.]*(?:no|number)[:\s#]*([A-Z0-9\-]{6,20})/i,
+    ],
+    taxExpiryDate: [
+      /(?:road tax|vehicle tax|tax)[^.]*(?:expir|due|valid until)[:\s]+(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})/i,
+    ],
+    insurancePolicyNumber: [
+      /(?:policy|insurance policy)[^.]*(?:no|number|#)[:\s]+([A-Z0-9\-\/]{5,25})/i,
+    ],
+    insuranceExpiryDate: [
+      /(?:insurance|policy)[^.]*(?:expir|valid until|renewal)[:\s]+(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})/i,
+    ],
+    insuredName: [
+      /(?:insured|policyholder|named driver)[:\s]+([A-Z][a-z]+ [A-Z][a-z]+)/i,
+    ],
+    insuranceCompany: [
+      /(?:insurer|insurance company|underwriter)[:\s]+([A-Za-z\s&]+(?:Insurance|Assurance|Mutual|Group))/i,
+    ],
+    pcoPlateNumber: [
+      /(?:PCO plate|vehicle licence|plate no)[:\s#]+([A-Z0-9]{4,12})/i,
+    ],
+    pcoPlateExpiry: [
+      /(?:plate|vehicle licence)[^.]*(?:expir|valid until)[:\s]+(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})/i,
+    ],
+  }
+
+  // ── Run patterns and return best match ──
+  const results = {}
+  const categoryFields = {
+    driver:      ['fullName','dateOfBirth','address','nationalInsuranceNumber','email','phone','pcoLicenceNumber','pcoLicenceExpiry','dvlaLicenceNumber','dvlaLicenceExpiry','dvlaLicenceIssueDate','dvlaEntitlements','dbsCertificateNumber','dbsIssueDate','dbsExpiryDate','dbsLevel'],
+    vehicle:     ['vehicleRegistration','make','model','year','colour','vin','motExpiryDate','motCertificateNumber','taxExpiryDate','insurancePolicyNumber','insuranceExpiryDate','insuredName','insuranceCompany','pcoPlateNumber','pcoPlateExpiry'],
+    recruitment: ['fullName','dateOfBirth','address','email','phone','nationalInsuranceNumber','pcoLicenceNumber','dvlaLicenceNumber','dvlaLicenceExpiry','dbsCertificateNumber','dbsIssueDate','dbsExpiryDate'],
+    general:     ['fullName','dateOfBirth','address','email','phone','vehicleRegistration','pcoLicenceNumber','dvlaLicenceNumber','dbsCertificateNumber'],
+  }
+
+  const fields = categoryFields[category] || categoryFields.general
+
+  fields.forEach(field => {
+    const fieldPatterns = patterns[field] || []
+    for (const pattern of fieldPatterns) {
+      const match = t.match(pattern)
+      if (match) {
+        results[field] = match[1]?.trim() || match[0]?.trim()
+        break
+      }
+    }
+    if (!results[field]) results[field] = null
+  })
+
+  return results
+}
+
+// ── Manual entry form fallback ──────────────────────────────────
+function renderManualForm(category, rawText = '') {
+  const fieldSets = {
+    driver: [
+      ['fullName','Full Name'],
+      ['dateOfBirth','Date of Birth'],
+      ['address','Address'],
+      ['nationalInsuranceNumber','NI Number'],
+      ['pcoLicenceNumber','PCO Licence Number'],
+      ['pcoLicenceExpiry','PCO Licence Expiry'],
+      ['dvlaLicenceNumber','DVLA Licence Number'],
+      ['dvlaLicenceExpiry','DVLA Licence Expiry'],
+      ['dvlaLicenceIssueDate','DVLA Issue Date'],
+      ['dvlaEntitlements','DVLA Entitlements'],
+      ['dbsCertificateNumber','DBS Certificate No.'],
+      ['dbsIssueDate','DBS Issue Date'],
+      ['dbsExpiryDate','DBS Expiry Date'],
+      ['dbsLevel','DBS Level'],
+    ],
+    vehicle: [
+      ['vehicleRegistration','Vehicle Registration'],
+      ['make','Make'],
+      ['model','Model'],
+      ['year','Year'],
+      ['colour','Colour'],
+      ['vin','VIN / Chassis No.'],
+      ['motExpiryDate','MOT Expiry'],
+      ['motCertificateNumber','MOT Certificate No.'],
+      ['taxExpiryDate','Road Tax Expiry'],
+      ['insurancePolicyNumber','Insurance Policy No.'],
+      ['insuranceExpiryDate','Insurance Expiry'],
+      ['insuredName','Insured Name'],
+      ['insuranceCompany','Insurance Company'],
+      ['pcoPlateNumber','PCO Plate Number'],
+      ['pcoPlateExpiry','PCO Plate Expiry'],
+    ],
+    recruitment: [
+      ['fullName','Full Name'],
+      ['dateOfBirth','Date of Birth'],
+      ['address','Address'],
+      ['email','Email'],
+      ['phone','Phone'],
+      ['nationalInsuranceNumber','NI Number'],
+      ['pcoLicenceNumber','PCO Licence Number'],
+      ['dvlaLicenceNumber','DVLA Licence Number'],
+      ['dvlaLicenceExpiry','DVLA Licence Expiry'],
+      ['dbsCertificateNumber','DBS Certificate No.'],
+      ['dbsIssueDate','DBS Issue Date'],
+      ['dbsExpiryDate','DBS Expiry Date'],
+    ],
+    general: [
+      ['fullName','Full Name / Entity Name'],
+      ['dateOfBirth','Date of Birth'],
+      ['address','Address'],
+      ['email','Email'],
+      ['phone','Phone'],
+      ['vehicleRegistration','Vehicle Registration'],
+      ['pcoLicenceNumber','Licence / Reference Number'],
+      ['dvlaLicenceNumber','DVLA Licence Number'],
+      ['dbsCertificateNumber','DBS Certificate No.'],
+    ],
+  }
+
+  const fields = fieldSets[category] || fieldSets.general
+  const empty  = {}
+  fields.forEach(([k]) => empty[k] = null)
+  currentExtracted = { ...empty, _category: category, _filename: scanFile?.name || '', _scannedAt: new Date().toISOString() }
+
+  const container = document.getElementById('extracted-fields')
+
+  container.innerHTML = `
+    ${rawText ? `
+      <div style="margin-bottom:14px">
+        <p style="font-size:0.65rem;text-transform:uppercase;letter-spacing:0.08em;color:#F59E0B;margin-bottom:6px">
+          Extracted Raw Text — Use to Copy Values Below
+        </p>
+        <textarea readonly style="width:100%;height:90px;background:rgba(245,158,11,0.05);border:1px solid rgba(245,158,11,0.2);color:#94A3B8;padding:10px;border-radius:8px;font-size:0.72rem;resize:vertical;font-family:monospace">${rawText.slice(0, 600)}${rawText.length > 600 ? '…' : ''}</textarea>
+      </div>` : ''}
+    ${fields.map(([key, label]) => `
+      <div style="display:grid;grid-template-columns:160px 1fr;gap:8px;align-items:center;padding:7px 10px;border-radius:6px;background:rgba(255,255,255,0.02)">
+        <span style="font-size:0.65rem;text-transform:uppercase;letter-spacing:0.08em;color:rgba(168,85,247,0.7)">${label}</span>
+        <input
+          data-key="${key}"
+          value=""
+          placeholder="Enter ${label}"
+          style="background:rgba(255,255,255,0.05);border:1px solid rgba(168,85,247,0.2);color:white;padding:7px 10px;border-radius:6px;font-size:0.82rem;outline:none;width:100%;font-family:Arial"
+          oninput="updateExtracted('${key}', this.value)"
+        />
+      </div>`).join('')}
+  `
+
+  document.getElementById('save-actions').style.display = 'flex'
+}
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload  = () => resolve(reader.result.split(',')[1])
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
+}
+
+const FIELD_LABELS = {
+  fullName:              'Full Name',
+  dateOfBirth:           'Date of Birth',
+  address:               'Address',
+  nationalInsuranceNumber:'NI Number',
+  email:                 'Email',
+  phone:                 'Phone',
+  nationality:           'Nationality',
+  rightToWork:           'Right to Work',
+  pcoLicenceNumber:      'PCO Licence Number',
+  pcoLicenceExpiry:      'PCO Licence Expiry',
+  dvlaLicenceNumber:     'DVLA Licence Number',
+  dvlaLicenceExpiry:     'DVLA Licence Expiry',
+  dvlaLicenceIssueDate:  'DVLA Issue Date',
+  dvlaEntitlements:      'DVLA Entitlements',
+  dvlaPoints:            'DVLA Points',
+  dbsCertificateNumber:  'DBS Certificate No.',
+  dbsIssueDate:          'DBS Issue Date',
+  dbsExpiryDate:         'DBS Expiry Date',
+  dbsLevel:              'DBS Level',
+  dbsUpdateService:      'DBS Update Service',
+  vehicleRegistration:   'Vehicle Registration',
+  make:                  'Make',
+  model:                 'Model',
+  year:                  'Year',
+  colour:                'Colour',
+  engineSize:            'Engine Size',
+  fuelType:              'Fuel Type',
+  vin:                   'VIN / Chassis No.',
+  motExpiryDate:         'MOT Expiry',
+  motCertificateNumber:  'MOT Certificate No.',
+  taxExpiryDate:         'Road Tax Expiry',
+  insurancePolicyNumber: 'Insurance Policy No.',
+  insuranceExpiryDate:   'Insurance Expiry',
+  insuredName:           'Insured Name',
+  insuranceCompany:      'Insurance Company',
+  pcoPlateNumber:        'PCO Plate Number',
+  pcoPlateExpiry:        'PCO Plate Expiry',
+  currentEmployer:       'Current Employer',
+  currentRole:           'Current Role',
+  yearsExperience:       'Years Experience',
+  qualifications:        'Qualifications',
+  safeguardingTraining:  'Safeguarding Training',
+  firstAidCertificate:   'First Aid Certificate',
+  firstAidExpiry:        'First Aid Expiry',
+  senExperience:         'SEN Experience',
+  movingHandlingCert:    'Moving & Handling Cert',
+  languages:             'Languages',
+  references:            'References',
+  documentType:          'Document Type',
+  issuingAuthority:      'Issuing Authority',
+  documentDate:          'Document Date',
+  notes:                 'Notes / Other Info',
+}
+
+function renderExtractedFields(data, category) {
+  const container = document.getElementById('extracted-fields')
+  const entries   = Object.entries(data).filter(([k]) => !k.startsWith('_'))
+
+  container.innerHTML = entries.map(([key, value]) => {
+    const label    = FIELD_LABELS[key] || key.replace(/([A-Z])/g, ' $1').trim()
+    const isDate   = key.toLowerCase().includes('date') || key.toLowerCase().includes('expiry')
+    const isEmpty  = !value || value === 'null'
+
+    return `<div style="display:grid;grid-template-columns:160px 1fr;gap:8px;align-items:center;padding:7px 10px;border-radius:6px;background:${isEmpty?'rgba(248,113,113,0.05)':'rgba(255,255,255,0.02)'}">
+      <span style="font-size:0.65rem;text-transform:uppercase;letter-spacing:0.08em;color:${isEmpty?'#F87171':'rgba(168,85,247,0.7)'}">${label}</span>
+      <input
+        data-key="${key}"
+        value="${isEmpty ? '' : (value || '')}"
+        placeholder="${isEmpty ? '⚠ Not found in document' : ''}"
+        type="${isDate ? 'text' : 'text'}"
+        style="background:${isEmpty?'rgba(248,113,113,0.08)':'rgba(255,255,255,0.05)'};border:1px solid ${isEmpty?'rgba(248,113,113,0.2)':'rgba(168,85,247,0.2)'};color:white;padding:7px 10px;border-radius:6px;font-size:0.82rem;outline:none;width:100%;font-family:Arial"
+        oninput="updateExtracted('${key}', this.value)"
+      />
+    </div>`
+  }).join('')
+
+  document.getElementById('save-actions').style.display = 'flex'
+}
+
+function updateExtracted(key, value) {
+  if (currentExtracted) currentExtracted[key] = value
+}
+
+function addToExportQueue() {
+  if (!currentExtracted) return
+  scannedRecords.push({ ...currentExtracted, _id: Date.now() })
+  renderQueue()
+  setStatus(`✓ Added to export queue. Total: ${scannedRecords.length} records.`, 'success')
+}
+
+async function saveExtractedRecord() {
+  if (!currentExtracted) return
+  const d = currentExtracted
+  const category = d._category
+
+  // Save to appropriate table based on category
+  if (category === 'driver') {
+    await api('POST', '/api/admin/drivers', {
+      firstName:        (d.fullName||'').split(' ')[0] || 'Unknown',
+      lastName:         (d.fullName||'').split(' ').slice(1).join(' ') || 'Unknown',
+      phone:            d.phone || '[ENTER PHONE]',
+      email:            d.email || '',
+      address:          d.address || '',
+      dateOfBirth:      d.dateOfBirth || '',
+      dvlaLicenceNumber:d.dvlaLicenceNumber || '',
+      dvlaExpiry:       d.dvlaLicenceExpiry || '',
+      pcoLicenceNumber: d.pcoLicenceNumber || '',
+      pcoExpiry:        d.pcoLicenceExpiry || '',
+      dbsNumber:        d.dbsCertificateNumber || '',
+      dbsExpiry:        d.dbsExpiryDate || '',
+      dbsIssueDate:     d.dbsIssueDate || '',
+      notes:            d.notes || '',
+    })
+    setStatus('✓ Driver record saved to Drivers database', 'success')
+    loadDrivers()
+  } else if (category === 'vehicle') {
+    await api('POST', '/api/admin/vehicles', {
+      registration:    d.vehicleRegistration || '[ENTER REG]',
+      make:            d.make || 'Unknown',
+      model:           d.model || 'Unknown',
+      year:            d.year || '',
+      colour:          d.colour || '',
+      motExpiry:       d.motExpiryDate || '',
+      insuranceExpiry: d.insuranceExpiryDate || '',
+      taxExpiry:       d.taxExpiryDate || '',
+      pcoPlateNumber:  d.pcoPlateNumber || '',
+      pcoPlateExpiry:  d.pcoPlateExpiry || '',
+      notes:           `VIN: ${d.vin||'—'} | Insurer: ${d.insuranceCompany||'—'} | Policy: ${d.insurancePolicyNumber||'—'}`,
+    })
+    setStatus('✓ Vehicle record saved to Vehicles database', 'success')
+    loadVehicles()
+  } else {
+    // Save as general record note
+    setStatus('✓ Added to export queue (general records save via export)', 'success')
+  }
+
+  addToExportQueue()
+}
+
+function renderQueue() {
+  const tbody = document.getElementById('queue-tbody')
+  document.getElementById('queue-count').textContent = `${scannedRecords.length} records`
+
+  if (!scannedRecords.length) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="9">No records scanned yet</td></tr>'
+    return
+  }
+
+  tbody.innerHTML = scannedRecords.map((r, i) => {
+    const name  = r.fullName || r.insuredName || '—'
+    const ref   = r.pcoLicenceNumber || r.dvlaLicenceNumber || r.dbsCertificateNumber ||
+                  r.vehicleRegistration || r.insurancePolicyNumber || '—'
+    const expiry= r.pcoLicenceExpiry || r.dvlaLicenceExpiry || r.dbsExpiryDate ||
+                  r.motExpiryDate || r.insuranceExpiryDate || '—'
+    const dob   = r.dateOfBirth || '—'
+    const reg   = r.vehicleRegistration || '—'
+    const keys  = Object.entries(r)
+      .filter(([k,v]) => !k.startsWith('_') && v && v !== 'null')
+      .slice(0, 3)
+      .map(([k,v]) => `${FIELD_LABELS[k]||k}: ${v}`)
+      .join(' · ')
+
+    return `<tr>
+      <td style="color:#A855F7;font-weight:700">${i+1}</td>
+      <td><span class="badge b-${r._category==='driver'?'confirmed':r._category==='vehicle'?'pending':'scheduled'}">${r._category}</span></td>
+      <td style="color:rgba(255,255,255,0.9);font-weight:600">${name}</td>
+      <td style="font-family:monospace;color:#F59E0B;font-size:0.82rem">${ref}</td>
+      <td style="font-size:0.82rem;${expiry!=='—'&&new Date(expiry)<new Date()?'color:#F87171':''}">${expiry}</td>
+      <td style="font-size:0.78rem;color:#94A3B8">${dob}</td>
+      <td style="font-family:monospace;color:#A855F7;font-size:0.82rem">${reg}</td>
+      <td style="font-size:0.75rem;color:#94A3B8;max-width:200px;overflow:hidden;text-overflow:ellipsis">${keys}</td>
+      <td>
+        <button class="btn btn-sm btn-danger" onclick="removeFromQueue(${r._id})">✕</button>
+      </td>
+    </tr>`
+  }).join('')
+}
+
+function removeFromQueue(id) {
+  scannedRecords = scannedRecords.filter(r => r._id !== id)
+  renderQueue()
+}
+
+function clearScanned() {
+  if (!confirm('Clear all scanned records from the queue?')) return
+  scannedRecords = []
+  currentExtracted = null
+  scanFile = null
+  document.getElementById('scan-file-preview').style.display = 'none'
+  document.getElementById('scan-status').style.display = 'none'
+  document.getElementById('extracted-fields').innerHTML =
+    '<div style="text-align:center;padding:40px;color:#94A3B8"><div style="font-size:2rem;margin-bottom:8px">⬅</div><p style="font-size:0.85rem">Upload and scan a document to see extracted data here</p></div>'
+  document.getElementById('save-actions').style.display = 'none'
+  renderQueue()
+}
+
+function exportScannedXLSX() {
+  if (!scannedRecords.length) { alert('No scanned records to export'); return }
+
+  // Build CSV with all fields as columns
+  const allKeys = [...new Set(
+    scannedRecords.flatMap(r => Object.keys(r).filter(k => !k.startsWith('_')))
+  )]
+
+  const headers = allKeys.map(k => FIELD_LABELS[k] || k)
+  const rows    = scannedRecords.map(r =>
+    allKeys.map(k => `"${(r[k]||'').toString().replace(/"/g,'""')}"`)
+  )
+
+  // Add metadata columns
+  const fullHeaders = ['#', 'Category', 'Document File', 'Scanned At', ...headers]
+  const fullRows    = scannedRecords.map((r, i) => [
+    i + 1,
+    r._category || '',
+    r._filename  || '',
+    r._scannedAt ? new Date(r._scannedAt).toLocaleString('en-GB') : '',
+    ...allKeys.map(k => r[k] || ''),
+  ].map(v => `"${String(v).replace(/"/g,'""')}"`))
+
+  const csv  = [fullHeaders.map(h=>`"${h}"`), ...fullRows].map(r => r.join(',')).join('\n')
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const a    = document.createElement('a')
+  a.href     = URL.createObjectURL(blob)
+  a.download = `haraka-scanned-documents-${new Date().toISOString().split('T')[0]}.csv`
+  a.click()
+}
+</script>
+</body>
+</html>
