@@ -135,7 +135,7 @@ db.serialize(() => {
 
       `INSERT INTO admin_users (username, password) VALUES (?,?)`,
 
-      ['admin', '$2b$12$dKpAEuE.pwsRuXrofGnWdevaENxvhBePGMazomDw6Kl07PLJaj9Jm'],
+      ['admin', '$2b$12$a.zxJmdG0iOLhtMeKfsyyezXX7TJzsLP2CKMCw5FFw8ZLTQEpGUAO'],
 
       () => console.log('  ◆  Admin ready — login: admin / 07OurFirst25')
 
