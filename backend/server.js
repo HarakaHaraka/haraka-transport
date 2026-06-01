@@ -555,10 +555,15 @@ app.delete('/api/admin/routes/:id', requireAuth, (req, res) => {
 
 // ── ALERTS + STATS ────────────────────────────────────────────────
 app.get('/api/admin/alerts', requireAuth, (req, res) => {
-  const days = parseInt(req.query.days) || 30
-  db.getExpiryAlerts(days, (alerts) => {
-    res.json(alerts || [])
-  })
+  try {
+    const days = parseInt(req.query.days) || 30
+    db.getExpiryAlerts(days, (alerts) => {
+      res.json(alerts || [])
+    })
+  } catch (err) {
+    console.error('Alerts error:', err)
+    res.json([])
+  }
 })
 app.get('/api/admin/stats', requireAuth, (_req, res) => {
   const stats = { totalBookings:0, totalQuotes:0, activeDrivers:0, activeVehicles:0 }
