@@ -18,7 +18,7 @@ app.use(cors({
   methods: ['GET','POST','PATCH','DELETE'],
   allowedHeaders: ['Content-Type','Authorization'],
 }))
-
+app.options('*', cors())
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: false }))
 
@@ -123,6 +123,7 @@ app.post('/api/auth/login', async (req, res) => {
 })
 
 // Health check
+app.get('/api/health', (_req, res) => res.json({ status: 'ok', time: new Date() }))
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', service: 'Haraka API', timestamp: new Date().toISOString() })
 })
