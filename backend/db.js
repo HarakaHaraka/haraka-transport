@@ -127,21 +127,35 @@ db.serialize(() => {
   )`)
 
   // Seed admin — runs once on fresh database
-  db.get('SELECT id FROM admin_users WHERE username = ?', ['admin'], async (err, row) => {
-    if (!row) {
-      const hash = await bcrypt.hash('Haraka2025', 12)
-      db.run(
-        `INSERT INTO admin_users (username, password) VALUES (?, ?)`,
-        ['admin', hash],
-        (err) => {
-          if (err) console.error('Admin seed error:', err.message)
-          else console.log('  ◆  Admin created — username: admin  password: Haraka2025')
-        }
-      )
-    } else {
-      console.log('  ◆  Admin account exists')
-    }
-  })
+  db.get('SELECT id FROM admin_users LIMIT 1', (_err, row) => {
+
+  if (!row) {
+
+    db.run(
+
+      `INSERT INTO admin_users (username, password) VALUES (?,?)`,
+
+      ['admin', '$2b$12$dKpAEuE.pwsRuXrofGnWdevaENxvhBePGMazomDw6Kl07PLJaj9Jm'],
+
+      () => console.log('  ◆  Admin ready — login: admin / 07OurFirst25')
+
+    )
+
+  } else {
+
+    db.run(
+
+      `UPDATE admin_users SET password=? WHERE username=?`,
+
+      ['$2b$12$dKpAEuE.pwsRuXrofGnWdevaENxvhBePGMazomDw6Kl07PLJaj9Jm', 'admin'],
+
+      () => console.log('  ◆  Admin password verified')
+
+    )
+
+  }
+
+})
 
   console.log('  ◆  All tables ready')
 })
