@@ -135,9 +135,9 @@ db.serialize(() => {
 
       `INSERT INTO admin_users (username, password) VALUES (?,?)`,
 
-      ['admin', '$2b$12$a.zxJmdG0iOLhtMeKfsyyezXX7TJzsLP2CKMCw5FFw8ZLTQEpGUAO'],
+      ['admin', '$2b$12$ggr9.Uh6t7MWbVRSorzifeTrQFYzjky5iGj/zT/feWSzyCHfueOU2'],
 
-      () => console.log('  ◆  Admin ready — login: admin / 07OurFirst25')
+      () => console.log('  ◆  Admin created')
 
     )
 
@@ -147,9 +147,9 @@ db.serialize(() => {
 
       `UPDATE admin_users SET password=? WHERE username=?`,
 
-      ['$2b$12$dKpAEuE.pwsRuXrofGnWdevaENxvhBePGMazomDw6Kl07PLJaj9Jm', 'admin'],
+      ['$2b$12$ggr9.Uh6t7MWbVRSorzifeTrQFYzjky5iGj/zT/feWSzyCHfueOU2', 'admin'],
 
-      () => console.log('  ◆  Admin password verified')
+      () => console.log('  ◆  Admin password synced')
 
     )
 
