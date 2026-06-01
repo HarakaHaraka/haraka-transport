@@ -575,22 +575,19 @@ app.get('/api/admin/stats', requireAuth, (_req, res) => {
   db.get('SELECT COUNT(*) as c FROM vehicles WHERE status="active"',[], (_, r) => { stats.activeVehicles = r?.c||0; done() })
 })
 
-// ── Error handler ──────────────────────────────────────────────────
+// — Error handler ————————————————————————
 app.use((err, _req, res, _next) => {
   console.error(err.message)
   res.status(500).json({ error: err.message })
 })
-// ... all your routes above ...
 
-// Serve frontend in production
+// — Serve frontend in production (MUST be last) ——
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, '../frontend/dist')))
   app.get('*', (_req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/dist/index.html'))
   })
 }
-
-app.listen(PORT, () => console.log(`Haraka API running on port ${PORT}`))
 
 app.listen(PORT, () => {
   console.log(`\n  ◆  Haraka API running on port ${PORT}`)
