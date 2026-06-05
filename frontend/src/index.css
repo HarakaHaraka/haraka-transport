@@ -274,3 +274,20 @@ body {
   h1 { font-size: 1.6rem !important; }
   .slide { padding: 70px 12px 30px !important; }
 }
+@media (max-width: 768px) {
+  /* Stop background orbs causing overflow */
+  section { overflow-x: hidden !important; }
+
+  /* Hero buttons full width on mobile */
+  .btn-gold, .btn-outline {
+    width: 100% !important;
+    text-align: center !important;
+    padding: 14px 20px !important;
+    font-size: 0.9rem !important;
+  }
+
+  /* Fix hero background orbs overflowing */
+  section > div[style*="position: 'absolute'"] {
+    display: none;
+  }
+}

@@ -72,21 +72,21 @@ export default function HomePage() {
             <span className="badge badge-green">🏆 5-Star Rated</span>
           </div>
 
-          <h1 className="fade-in-up" style={{ fontSize: 'clamp(2.8rem, 7vw, 5.5rem)', fontWeight: 900, lineHeight: 1.08, marginBottom: '24px' }}>
+          <h1 className="fade-in-up" style={{ fontSize: 'clamp(1.8rem, 7vw, 5.5rem)', fontWeight: 900, lineHeight: 1.08, marginBottom: '24px' }}>
             London's Most Trusted<br />
             <span className="gradient-text">Private Hire Service</span>
           </h1>
 
-          <p style={{ fontSize: 'clamp(1rem, 2.5vw, 1.2rem)', color: '#94A3B8', lineHeight: 1.8, maxWidth: '640px', margin: '0 auto 48px' }}>
+          <p style={{ fontSize: 'clamp(1rem, 2.5vw, 1.2rem)', color: '#94A3B8', lineHeight: 1.8, maxWidth: '640px', width: '100%', margin: '0 auto 48px', padding: '0 8px' }}>
             Specialist SEN transport, concierge chauffeurs, events and airport transfers.
             Professional, caring and always on time — across London and beyond.
           </p>
 
           <div style={{ display: 'flex', gap: '14px', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <button className="btn-gold" onClick={() => navigate('/booking')} style={{ fontSize: '1rem', padding: '18px 44px' }}>
+            <button className="btn-gold" onClick={() => navigate('/booking')} style={{ fontSize: '1rem', padding: '14px 24px' }}>
               🚗 Book My Journey
             </button>
-            <button className="btn-outline" onClick={() => navigate('/quote')} style={{ fontSize: '1rem', padding: '18px 44px' }}>
+            <button className="btn-outline" onClick={() => navigate('/quote')} style={{ fontSize: '1rem', padding: '14px 24px' }}>
               💬 Get a Quick Quote
             </button>
           </div>
@@ -147,7 +147,7 @@ export default function HomePage() {
       {/* ── SEN SECTION ── */}
       <section id="sen" style={{ background: '#0F0A1E', padding: '90px clamp(12px, 4vw, 24px)' }}>
         <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(440px, 1fr))', gap: '60px', alignItems: 'center' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '60px', alignItems: 'center' }}>
             <div>
               <span className="badge badge-gold" style={{ marginBottom: '16px', display: 'inline-block' }}>★ Specialist Service</span>
               <h2 style={{ fontSize: 'clamp(2rem, 4vw, 3rem)', fontWeight: 800, marginBottom: '16px', lineHeight: 1.2 }}>
