@@ -145,7 +145,7 @@ export default function HomePage() {
       </section>
 
       {/* ── SEN SECTION ── */}
-      <section id="sen" style={{ background: '#0F0A1E', padding: '90px 24px' }}>
+      <section id="sen" style={{ background: '#0F0A1E', padding: '90px clamp(12px, 4vw, 24px)' }}>
         <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(440px, 1fr))', gap: '60px', alignItems: 'center' }}>
             <div>
@@ -198,7 +198,7 @@ export default function HomePage() {
       </section>
 
       {/* ── SERVICES ── */}
-      <section id="services" style={{ background: '#1A1033', padding: '90px 24px' }}>
+      <section id="services" style={{ background: '#1A1033', padding: '90px clamp(12px, 4vw, 24px)' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: '56px' }}>
             <p style={{ fontSize: '0.7rem', letterSpacing: '0.3em', textTransform: 'uppercase', color: '#A855F7', marginBottom: '12px' }}>● What We Do ●</p>
@@ -216,14 +216,14 @@ export default function HomePage() {
     <div style={{ display:'flex', gap:'8px', flexWrap:'wrap' }}>
       <button
         onClick={() => navigate(`/quote?service=${encodeURIComponent(s.quoteParam)}`)}
-        style={{ flex:1, minWidth:'100px', padding:'10px 8px', background:'rgba(245,158,11,0.12)', border:'1px solid rgba(245,158,11,0.4)', color:'#F59E0B', borderRadius:'8px', cursor:'pointer', fontSize:'0.78rem', fontWeight:700, transition:'all 0.2s' }}
+        style={{ flex:1, minWidth:'80px', padding:'10px 8px', background:'rgba(245,158,11,0.12)', border:'1px solid rgba(245,158,11,0.4)', color:'#F59E0B', borderRadius:'8px', cursor:'pointer', fontSize:'0.78rem', fontWeight:700, transition:'all 0.2s' }}
         onMouseEnter={e=>{e.target.style.background='rgba(245,158,11,0.22)'}}
         onMouseLeave={e=>{e.target.style.background='rgba(245,158,11,0.12)'}}>
         💬 Get Quote
       </button>
       <button
         onClick={() => navigate(`/booking?service=${encodeURIComponent(s.quoteParam)}`)}
-        style={{ flex:1, minWidth:'100px', padding:'10px 8px', background:'rgba(168,85,247,0.12)', border:'1px solid rgba(168,85,247,0.4)', color:'#A855F7', borderRadius:'8px', cursor:'pointer', fontSize:'0.78rem', fontWeight:700, transition:'all 0.2s' }}
+        style={{ flex:1, minWidth:'80px', padding:'10px 8px', background:'rgba(168,85,247,0.12)', border:'1px solid rgba(168,85,247,0.4)', color:'#A855F7', borderRadius:'8px', cursor:'pointer', fontSize:'0.78rem', fontWeight:700, transition:'all 0.2s' }}
         onMouseEnter={e=>{e.target.style.background='rgba(168,85,247,0.22)'}}
         onMouseLeave={e=>{e.target.style.background='rgba(168,85,247,0.12)'}}>
         🚗 Book Now
@@ -285,9 +285,9 @@ export default function HomePage() {
       </section>
 
       {/* ── CONTACT CTA ── */}
-      <section id="contact" style={{ padding: '90px 24px', textAlign: 'center', background: 'linear-gradient(135deg, #1A1033, #0F0A1E)', borderTop: '1px solid rgba(168,85,247,0.15)' }}>
+      <section id="contact" style={{ padding: '90px clamp(12px, 4vw, 24px)', textAlign: 'center', background: 'linear-gradient(135deg, #1A1033, #0F0A1E)', borderTop: '1px solid rgba(168,85,247,0.15)' }}>
         <h2 style={{ fontSize: 'clamp(2rem, 5vw, 3.5rem)', fontWeight: 900, marginBottom: '16px' }}>Ready to Travel?</h2>
-        <p style={{ color: '#94A3B8', fontSize: '1.05rem', maxWidth: '500px', margin: '0 auto 40px', lineHeight: 1.8 }}>
+        <p style={{ color: '#94A3B8', fontSize: '1.05rem', maxWidth: '500px', width: '100%', margin: '0 auto 40px', lineHeight: 1.8 }}>
           Book online or get a quick quote. We respond within 2 hours and are available 24/7.
         </p>
         <div style={{ display: 'flex', gap: '14px', justifyContent: 'center', flexWrap: 'wrap' }}>

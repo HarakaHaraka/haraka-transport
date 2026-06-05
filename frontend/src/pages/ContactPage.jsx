@@ -63,7 +63,7 @@ export default function ContactPage() {
         <div style={{ textAlign: 'center', marginBottom: '48px' }}>
           <span className="badge badge-purple" style={{ marginBottom: '14px', display: 'inline-block' }}>Get In Touch</span>
           <h1 style={{ fontSize: 'clamp(2rem, 5vw, 3rem)', fontWeight: 900, color: 'white', marginBottom: '12px' }}>Contact Us</h1>
-          <p style={{ color: '#94A3B8', fontSize: '1rem', maxWidth: '500px', margin: '0 auto', lineHeight: 1.7 }}>
+          <p style={{ color: '#94A3B8', fontSize: '1rem', maxWidth: '500px', width: '100%', margin: '0 auto', lineHeight: 1.7 }}>
             We are available 24 hours a day, 7 days a week. Get in touch by phone, email or the form below.
           </p>
         </div>

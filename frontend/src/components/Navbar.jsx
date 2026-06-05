@@ -108,7 +108,7 @@ export default function Navbar() {
               {l.label}
             </button>
           ))}
-          <div style={{ display:'flex', gap:'10px', marginTop:'16px' }}>
+          <div style={{ display:'flex', gap:'10px', marginTop:'16px', flexWrap:'wrap' }}>
             <button className="btn-outline" onClick={() => go('/quote')}
               style={{ flex:1, padding:'13px', fontSize:'0.9rem' }}>💬 Quick Quote</button>
             <button className="btn-gold" onClick={() => go('/booking')}
