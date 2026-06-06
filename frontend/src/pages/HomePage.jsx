@@ -62,8 +62,8 @@ export default function HomePage() {
         minHeight: '100vh', position: 'relative', overflow: 'hidden',
         display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '80px 24px',
       }}>
-        <div style={{ position: 'absolute', top: '-20%', right: '-10%', width: '600px', height: '600px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(107,33,168,0.25) 0%, transparent 70%)', pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', bottom: '-10%', left: '-5%', width: '500px', height: '500px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(245,158,11,0.12) 0%, transparent 70%)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', top: '-20%', right: '-10%', width: 'min(600px, 80vw)', height: 'min(600px, 80vw)', borderRadius: '50%', background: 'radial-gradient(circle, rgba(107,33,168,0.25) 0%, transparent 70%)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', bottom: '-10%', left: '-5%', width: 'min(500px, 70vw)', height: 'min(500px, 70vw)', borderRadius: '50%', background: 'radial-gradient(circle, rgba(245,158,11,0.12) 0%, transparent 70%)', pointerEvents: 'none' }} />
 
         <div style={{ position: 'relative', zIndex: 1, textAlign: 'center', maxWidth: '900px' }}>
           <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '28px' }}>
