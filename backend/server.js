@@ -12,6 +12,50 @@ const app        = express()
 const PORT       = process.env.PORT || 3001
 const JWT_SECRET = process.env.JWT_SECRET || 'haraka-change-this-secret-2025'
 
+// ── Email notifications (Resend) ──────────────────────────────────
+// Uses Node's built-in fetch — no npm package needed.
+// Requires env vars: RESEND_API_KEY, NOTIFY_TO (your inbox).
+const NOTIFY_FROM = process.env.NOTIFY_FROM || 'Haraka Transport <notifications@harakatransport.co.uk>'
+const NOTIFY_TO   = process.env.NOTIFY_TO   || 'info@harakatransport.co.uk'
+
+async function notifyMe(subject, data) {
+  if (!process.env.RESEND_API_KEY) {
+    console.log('  ◆  Email skipped (no RESEND_API_KEY set)')
+    return
+  }
+  try {
+    const rows = Object.entries(data)
+      .filter(([, v]) => v !== undefined && v !== null && v !== '')
+      .map(([k, v]) =>
+        `<tr><td style="padding:4px 12px 4px 0;font-weight:bold;vertical-align:top">${k}</td>` +
+        `<td style="padding:4px 0">${String(v)}</td></tr>`)
+      .join('')
+
+    const r = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: NOTIFY_FROM,
+        to: [NOTIFY_TO],
+        subject,
+        html: `<h2>${subject}</h2><table>${rows}</table>` +
+              `<p style="color:#888;font-size:12px">Sent automatically by the Haraka API</p>`,
+      }),
+    })
+    if (!r.ok) {
+      console.error('  ◆  Email notify failed:', r.status, await r.text())
+    } else {
+      console.log(`  ◆  Email sent: ${subject}`)
+    }
+  } catch (e) {
+    // Never let an email failure break the customer's submission
+    console.error('  ◆  Email notify error:', e.message)
+  }
+}
+
 // ── CORS ──────────────────────────────────────────────────────────
 app.use(cors({
   origin: '*',
@@ -103,6 +147,34 @@ app.post('/api/bookings', (req, res) => {
     function(err) {
       if (err) return res.status(500).json({ error: err.message })
       console.log(`  ◆  New ${d.type||'booking'} #${this.lastID}: ${d.firstName} ${d.lastName}`)
+
+      // Email notification (fire-and-forget — does not delay the response)
+      notifyMe(
+        `New ${d.type||'booking'} #${this.lastID} — ${d.firstName} ${d.lastName}`,
+        {
+          reference: `#${this.lastID}`,
+          name: `${d.firstName} ${d.lastName}`,
+          email: d.email,
+          phone: d.phone,
+          serviceType: d.serviceType,
+          pickupDate: d.pickupDate,
+          pickupTime: d.pickupTime,
+          pickupAddress: d.pickupAddress,
+          dropoffAddress: d.dropoffAddress,
+          passengers: d.passengers,
+          luggage: d.luggage,
+          vehiclePreference: d.vehiclePreference,
+          flightNumber: d.flightNumber,
+          specialRequirements: d.specialRequirements,
+          contractType: d.contractType,
+          companyName: d.companyName,
+          serviceInterest: d.serviceInterest,
+          journeyDetails: d.journeyDetails,
+          callTime: d.callTime,
+          referralSource: d.referralSource,
+        }
+      )
+
       res.status(201).json({ id: this.lastID, success: true })
     }
   )
@@ -123,7 +195,6 @@ app.post('/api/auth/login', async (req, res) => {
 })
 
 // Health check
-app.get('/api/health', (_req, res) => res.json({ status: 'ok', time: new Date() }))
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', service: 'Haraka API', timestamp: new Date().toISOString() })
 })
@@ -185,6 +256,27 @@ app.post('/api/recruitment',
       function(err) {
         if (err) return res.status(500).json({ error: err.message })
         console.log(`  ◆  New recruitment application #${this.lastID}: ${d.firstName} ${d.lastName} — ${d.role}`)
+
+        // Email notification (fire-and-forget)
+        notifyMe(
+          `New job application #${this.lastID} — ${d.firstName} ${d.lastName} (${d.role || 'role not specified'})`,
+          {
+            reference: `#${this.lastID}`,
+            name: `${d.firstName} ${d.lastName}`,
+            email: d.email,
+            phone: d.phone,
+            role: d.role,
+            availability: d.availability,
+            employmentStatus: d.employmentStatus,
+            rightToWork: d.rightToWork,
+            pcoLicence: d.pcoLicence,
+            dvlaLicence: d.dvlaLicence,
+            senExperience: d.senExperience,
+            cvUploaded: get('cvFile') ? 'Yes — view in admin panel' : 'No',
+            referralSource: d.referralSource,
+          }
+        )
+
         res.status(201).json({ id: this.lastID, success: true })
       }
     )
