@@ -7,6 +7,7 @@ const bcrypt   = require('bcrypt')
 const multer   = require('multer')
 const fs       = require('fs')
 const db       = require('./db')
+const { runExpiryCheck } = require('./expiryAlerts')
 
 const app        = express()
 const PORT       = process.env.PORT || 3001
@@ -53,6 +54,44 @@ async function notifyMe(subject, data) {
   } catch (e) {
     // Never let an email failure break the customer's submission
     console.error('  ◆  Email notify error:', e.message)
+  }
+}
+
+// ── Customer confirmation email (Resend) ──────────────────────────
+// Sends the customer a confirmation when they submit a booking or quote.
+async function emailCustomer(booking, refId) {
+  if (!process.env.RESEND_API_KEY || !booking.email) return
+  const isQuote = booking.type === 'quote'
+  try {
+    await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: NOTIFY_FROM,
+        to: [booking.email],
+        subject: isQuote
+          ? 'We\u2019ve received your quote request \u2014 Haraka Transport'
+          : `Your booking request is confirmed \u2014 Haraka Transport (ref #${refId})`,
+        html: `<h2>Thank you, ${booking.firstName || ''}</h2>
+          <p>${isQuote
+            ? 'We\u2019ve received your quote request and will get back to you shortly with a price.'
+            : `We\u2019ve received your booking request. Your reference is <b>#${refId}</b>.`}</p>
+          <table>
+            ${booking.serviceType    ? `<tr><td style="padding:3px 12px 3px 0"><b>Service</b></td><td>${booking.serviceType}</td></tr>` : ''}
+            ${booking.pickupAddress  ? `<tr><td style="padding:3px 12px 3px 0"><b>Pick-up</b></td><td>${booking.pickupAddress}</td></tr>` : ''}
+            ${booking.dropoffAddress ? `<tr><td style="padding:3px 12px 3px 0"><b>Drop-off</b></td><td>${booking.dropoffAddress}</td></tr>` : ''}
+            ${booking.pickupDate     ? `<tr><td style="padding:3px 12px 3px 0"><b>Date</b></td><td>${booking.pickupDate} ${booking.pickupTime || ''}</td></tr>` : ''}
+          </table>
+          <p>If anything is wrong, reply to this email or call us on 07849 549740.</p>
+          <p style="color:#888;font-size:12px">Haraka Transport Limited \u00b7 TfL Licensed Private Hire \u00b7 harakatransport.co.uk</p>`,
+      }),
+    })
+    console.log(`  ◆  Customer confirmation sent to ${booking.email}`)
+  } catch (e) {
+    console.error('  ◆  Customer email error:', e.message)  // never breaks the booking
   }
 }
 
@@ -148,7 +187,7 @@ app.post('/api/bookings', (req, res) => {
       if (err) return res.status(500).json({ error: err.message })
       console.log(`  ◆  New ${d.type||'booking'} #${this.lastID}: ${d.firstName} ${d.lastName}`)
 
-      // Email notification (fire-and-forget — does not delay the response)
+      // Email notification to admin (fire-and-forget — does not delay the response)
       notifyMe(
         `New ${d.type||'booking'} #${this.lastID} — ${d.firstName} ${d.lastName}`,
         {
@@ -175,6 +214,9 @@ app.post('/api/bookings', (req, res) => {
         }
       )
 
+      // Confirmation email to the customer (fire-and-forget)
+      emailCustomer(d, this.lastID)
+
       res.status(201).json({ id: this.lastID, success: true })
     }
   )
@@ -198,6 +240,13 @@ app.post('/api/auth/login', async (req, res) => {
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', service: 'Haraka API', timestamp: new Date().toISOString() })
 })
+
+// Manual trigger / external-cron endpoint for the daily expiry check
+app.get('/api/run-expiry-check', (req, res) => {
+  runExpiryCheck()
+  res.json({ ok: true, message: 'Expiry check triggered' })
+})
+
 // POST /api/recruitment — public, accepts application + file uploads
 app.post('/api/recruitment',
   recruitUpload.fields([
@@ -307,6 +356,7 @@ app.get('/api/admin/recruitment', requireAuth, (req, res) => {
 
 // Serve recruitment documents (admin only)
 app.use('/recruitment-docs', requireAuth, express.static(RECRUIT_DIR))
+
 // ════════════════════════════════════════
 // ADMIN ROUTES (all require login)
 // ════════════════════════════════════════
@@ -685,4 +735,8 @@ if (process.env.NODE_ENV === 'production') {
 app.listen(PORT, () => {
   console.log(`\n  ◆  Haraka API running on port ${PORT}`)
   console.log(`  ◆  Health: http://localhost:${PORT}/api/health\n`)
+
+  // Document-expiry check: run 20s after start, then every 24 hours.
+  setTimeout(runExpiryCheck, 20 * 1000)
+  setInterval(runExpiryCheck, 24 * 60 * 60 * 1000)
 })
