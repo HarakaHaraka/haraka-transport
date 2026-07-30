@@ -91,6 +91,9 @@ db.serialize(() => {
     status               TEXT    DEFAULT 'active',
     assignedDriverId     INTEGER,
     notes                TEXT,
+    motSource            TEXT    DEFAULT 'manual',
+    motLastCheckedAt     DATETIME,
+    motTestResult        TEXT,
     createdAt            DATETIME DEFAULT CURRENT_TIMESTAMP
   )`)
 
@@ -125,6 +128,16 @@ db.serialize(() => {
     password  TEXT    NOT NULL,
     createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
   )`)
+
+  // Lightweight migration for DBs created before the DVSA MOT sync columns
+  // existed — CREATE TABLE IF NOT EXISTS above only applies to fresh DBs.
+  db.all('PRAGMA table_info(vehicles)', [], (err, cols) => {
+    if (err) return
+    const have = new Set((cols || []).map(c => c.name))
+    if (!have.has('motSource'))        db.run(`ALTER TABLE vehicles ADD COLUMN motSource TEXT DEFAULT 'manual'`)
+    if (!have.has('motLastCheckedAt')) db.run(`ALTER TABLE vehicles ADD COLUMN motLastCheckedAt DATETIME`)
+    if (!have.has('motTestResult'))    db.run(`ALTER TABLE vehicles ADD COLUMN motTestResult TEXT`)
+  })
 
   // Explicit, audited operator overrides of the compliance gate.
   // entityType/entityId is polymorphic (a driver or a vehicle) rather than

@@ -8,6 +8,7 @@ const multer   = require('multer')
 const fs       = require('fs')
 const db       = require('./db')
 const { runExpiryCheck } = require('./expiryAlerts')
+const dvsaMot  = require('./dvsaMot')
 
 const app        = express()
 const PORT       = process.env.PORT || 3001
@@ -843,6 +844,40 @@ app.post('/api/admin/compliance/override', requireAuth, (req, res) => {
   )
 })
 
+// Refresh MOT data for every vehicle from the DVSA MOT History API.
+// No-ops safely (200 with skipped:true) if DVSA_* env vars aren't set yet.
+app.post('/api/admin/compliance/mot-sync', requireAuth, async (req, res) => {
+  try {
+    const summary = await dvsaMot.syncAllVehicles(db)
+    res.json(summary)
+  } catch (err) {
+    console.error('  ◆  DVSA MOT sync failed:', err.message)
+    res.status(502).json({ error: err.message })
+  }
+})
+
+// Refresh MOT data for a single vehicle by id
+app.post('/api/admin/vehicles/:id/mot-sync', requireAuth, (req, res) => {
+  db.get('SELECT id, registration FROM vehicles WHERE id=?', [req.params.id], async (err, vehicle) => {
+    if (err)      return res.status(500).json({ error: err.message })
+    if (!vehicle) return res.status(404).json({ error: 'Vehicle not found' })
+    try {
+      const result = await dvsaMot.fetchMotByRegistration(vehicle.registration)
+      if (!result) return res.json({ updated: false, message: 'DVSA has no passed MOT test on record for this registration' })
+      db.run(
+        `UPDATE vehicles SET motExpiry=?, motSource='dvsa_api', motTestResult=?, motLastCheckedAt=CURRENT_TIMESTAMP WHERE id=?`,
+        [result.motExpiry, result.testResult, vehicle.id],
+        (uErr) => {
+          if (uErr) return res.status(500).json({ error: uErr.message })
+          res.json({ updated: true, ...result })
+        }
+      )
+    } catch (e) {
+      res.status(502).json({ error: e.message })
+    }
+  })
+})
+
 // Revoke an active override
 app.delete('/api/admin/compliance/override/:id', requireAuth, (req, res) => {
   db.run(
@@ -900,4 +935,9 @@ app.listen(PORT, () => {
   // Document-expiry check: run 20s after start, then every 24 hours.
   setTimeout(runExpiryCheck, 20 * 1000)
   setInterval(runExpiryCheck, 24 * 60 * 60 * 1000)
+
+  // DVSA MOT sync: run 40s after start (offset from the expiry check),
+  // then every 24 hours. No-ops until DVSA_* env vars are configured.
+  setTimeout(() => dvsaMot.syncAllVehicles(db), 40 * 1000)
+  setInterval(() => dvsaMot.syncAllVehicles(db), 24 * 60 * 60 * 1000)
 })
