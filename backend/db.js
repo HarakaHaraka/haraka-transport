@@ -126,6 +126,24 @@ db.serialize(() => {
     createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
   )`)
 
+  // Explicit, audited operator overrides of the compliance gate.
+  // entityType/entityId is polymorphic (a driver or a vehicle) rather than
+  // a single boolean flag on drivers/vehicles, so each override carries who
+  // did it, why, and — optionally — when it stops applying. Revocation is
+  // recorded rather than deleting the row, so the audit trail survives.
+  db.run(`CREATE TABLE IF NOT EXISTS compliance_overrides (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    entityType   TEXT    NOT NULL CHECK(entityType IN ('driver','vehicle')),
+    entityId     INTEGER NOT NULL,
+    reason       TEXT    NOT NULL,
+    overriddenBy TEXT,
+    expiresAt    TEXT,
+    active       INTEGER DEFAULT 1,
+    createdAt    DATETIME DEFAULT CURRENT_TIMESTAMP,
+    revokedAt    DATETIME,
+    revokedBy    TEXT
+  )`)
+
   // Seed admin — runs once on fresh database
   db.get('SELECT id FROM admin_users LIMIT 1', (_err, row) => {
 
@@ -209,6 +227,113 @@ db.getExpiryAlerts = (daysAhead = 30, callback) => {
         })
       }
       if (typeof callback === 'function') callback(alerts)
+    })
+  })
+}
+
+// ────────────────────────────────────────────────────────────────
+// Compliance gating
+// A driver's availability for assignment depends on their own licence/DBS
+// expiries AND — since they'll be driving it — the expiries of whichever
+// vehicle they're paired with for that job. Either side can be unblocked
+// with an explicit, audited override (see compliance_overrides above).
+// ────────────────────────────────────────────────────────────────
+
+const isExpired = (dateStr, today) => !!dateStr && dateStr <= today
+
+db.driverBlockers = (driver, today = new Date().toISOString().split('T')[0]) => {
+  const blockers = []
+  if (driver.status && driver.status !== 'active') {
+    blockers.push({ entityType: 'driver', entityId: driver.id, field: 'status',
+      message: `Driver status is '${driver.status}', not active` })
+  }
+  ;[['dvlaExpiry', 'DVLA Licence'], ['pcoExpiry', 'PCO/TfL Licence'], ['dbsExpiry', 'Enhanced DBS']]
+    .forEach(([field, label]) => {
+      if (isExpired(driver[field], today)) {
+        blockers.push({ entityType: 'driver', entityId: driver.id, field, label,
+          expiry: driver[field], message: `${label} expired on ${driver[field]}` })
+      }
+    })
+  return blockers
+}
+
+db.vehicleBlockers = (vehicle, today = new Date().toISOString().split('T')[0]) => {
+  const blockers = []
+  if (vehicle.status && vehicle.status !== 'active') {
+    blockers.push({ entityType: 'vehicle', entityId: vehicle.id, field: 'status',
+      message: `Vehicle status is '${vehicle.status}', not active` })
+  }
+  ;[['motExpiry', 'MOT'], ['taxExpiry', 'Road Tax'], ['insuranceExpiry', 'Insurance'], ['pcoPlateExpiry', 'PCO Plate']]
+    .forEach(([field, label]) => {
+      if (isExpired(vehicle[field], today)) {
+        blockers.push({ entityType: 'vehicle', entityId: vehicle.id, field, label,
+          expiry: vehicle[field], message: `${label} expired on ${vehicle[field]}` })
+      }
+    })
+  return blockers
+}
+
+// Latest still-in-force override for one entity (null if none / expired / revoked).
+db.getActiveOverride = (entityType, entityId, callback) => {
+  if (!entityId) return callback(null, null)
+  const today = new Date().toISOString().split('T')[0]
+  db.get(
+    `SELECT * FROM compliance_overrides
+     WHERE entityType=? AND entityId=? AND active=1
+       AND (expiresAt IS NULL OR expiresAt >= ?)
+     ORDER BY createdAt DESC LIMIT 1`,
+    [entityType, entityId, today],
+    (err, row) => callback(err, row || null)
+  )
+}
+
+// Full compliance picture for a driver+vehicle pairing (either id may be
+// omitted). `blockers` is always the raw, un-overridden list; `available`
+// is the actual gating decision (compliant, or fully covered by overrides).
+db.getAssignmentCompliance = ({ driverId, vehicleId }, callback) => {
+  const today = new Date().toISOString().split('T')[0]
+
+  const fetchDriver = (cb) => driverId
+    ? db.get('SELECT * FROM drivers WHERE id=?', [driverId], cb)
+    : cb(null, null)
+  const fetchVehicle = (cb) => vehicleId
+    ? db.get('SELECT * FROM vehicles WHERE id=?', [vehicleId], cb)
+    : cb(null, null)
+
+  fetchDriver((dErr, driver) => {
+    if (dErr) return callback(dErr)
+    fetchVehicle((vErr, vehicle) => {
+      if (vErr) return callback(vErr)
+
+      const blockers = [
+        ...(driver  ? db.driverBlockers(driver, today)   : []),
+        ...(vehicle ? db.vehicleBlockers(vehicle, today) : []),
+      ]
+
+      const finish = (driverOverride, vehicleOverride) => {
+        const uncovered = blockers.filter(b =>
+          (b.entityType === 'driver'  && !driverOverride) ||
+          (b.entityType === 'vehicle' && !vehicleOverride)
+        )
+        callback(null, {
+          driver:  driver  ? { id: driver.id,  name: `${driver.firstName} ${driver.lastName}` } : null,
+          vehicle: vehicle ? { id: vehicle.id, registration: vehicle.registration } : null,
+          blockers,
+          compliant: blockers.length === 0,
+          overridden: blockers.length > 0 && uncovered.length === 0,
+          available: uncovered.length === 0,
+          driverOverride,
+          vehicleOverride,
+        })
+      }
+
+      if (!blockers.length) return finish(null, null)
+
+      db.getActiveOverride('driver', driverId, (_e1, dOverride) => {
+        db.getActiveOverride('vehicle', vehicleId, (_e2, vOverride) => {
+          finish(dOverride, vOverride)
+        })
+      })
     })
   })
 }

@@ -152,6 +152,43 @@ const requireAuth = (req, res, next) => {
   }
 }
 
+// ── Compliance gate ─────────────────────────────────────────────────
+// Shared by every endpoint that assigns a driver and/or vehicle to a job
+// (bookings + routes). Blocks the write if the pairing isn't compliant,
+// unless an active override already covers it — or the caller supplies
+// `complianceOverrideReason`, in which case an override is created on the
+// fly (audited under the logged-in admin) and the write proceeds.
+function gateAssignment(req, res, { driverId, vehicleId }, proceed) {
+  if (!driverId && !vehicleId) return proceed()
+
+  db.getAssignmentCompliance({ driverId, vehicleId }, (err, cStatus) => {
+    if (err) return res.status(500).json({ error: err.message })
+    if (cStatus.available) return proceed()
+
+    const reason = req.body.complianceOverrideReason
+    if (!reason) {
+      return res.status(409).json({
+        error: 'Driver/vehicle is not compliant for assignment',
+        blockers: cStatus.blockers,
+      })
+    }
+
+    const entities = [...new Set(cStatus.blockers.map(b => `${b.entityType}:${b.entityId}`))]
+    let remaining = entities.length
+    entities.forEach(key => {
+      const [entityType, entityId] = key.split(':')
+      db.run(
+        `INSERT INTO compliance_overrides (entityType, entityId, reason, overriddenBy) VALUES (?,?,?,?)`,
+        [entityType, entityId, reason, req.admin.username],
+        (insErr) => {
+          if (insErr) console.error('  ◆  Override insert error:', insErr.message)
+          if (--remaining === 0) proceed()
+        }
+      )
+    })
+  })
+}
+
 // ── Logger ─────────────────────────────────────────────────────────
 app.use((req, _res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`)
@@ -404,20 +441,33 @@ app.get('/api/admin/bookings/:id', requireAuth, (req, res) => {
 
 app.patch('/api/admin/bookings/:id', requireAuth, (req, res) => {
   const { status, adminNotes, quotedPrice, assignedDriverId, assignedVehicleId } = req.body
-  db.run(
-    `UPDATE bookings SET
-     status=COALESCE(?,status), adminNotes=COALESCE(?,adminNotes),
-     quotedPrice=COALESCE(?,quotedPrice),
-     assignedDriverId=COALESCE(?,assignedDriverId),
-     assignedVehicleId=COALESCE(?,assignedVehicleId)
-     WHERE id=?`,
-    [status,adminNotes,quotedPrice,assignedDriverId,assignedVehicleId,req.params.id],
-    function(err) {
-      if (err)           return res.status(500).json({ error: err.message })
-      if (!this.changes) return res.status(404).json({ error: 'Not found' })
-      res.json({ success: true })
-    }
-  )
+
+  const applyUpdate = () => {
+    db.run(
+      `UPDATE bookings SET
+       status=COALESCE(?,status), adminNotes=COALESCE(?,adminNotes),
+       quotedPrice=COALESCE(?,quotedPrice),
+       assignedDriverId=COALESCE(?,assignedDriverId),
+       assignedVehicleId=COALESCE(?,assignedVehicleId)
+       WHERE id=?`,
+      [status,adminNotes,quotedPrice,assignedDriverId,assignedVehicleId,req.params.id],
+      function(err) {
+        if (err)           return res.status(500).json({ error: err.message })
+        if (!this.changes) return res.status(404).json({ error: 'Not found' })
+        res.json({ success: true })
+      }
+    )
+  }
+
+  if (assignedDriverId === undefined && assignedVehicleId === undefined) return applyUpdate()
+
+  db.get('SELECT assignedDriverId, assignedVehicleId FROM bookings WHERE id=?', [req.params.id], (err, existing) => {
+    if (err)       return res.status(500).json({ error: err.message })
+    if (!existing) return res.status(404).json({ error: 'Not found' })
+    const driverId  = assignedDriverId  !== undefined ? assignedDriverId  : existing.assignedDriverId
+    const vehicleId = assignedVehicleId !== undefined ? assignedVehicleId : existing.assignedVehicleId
+    gateAssignment(req, res, { driverId, vehicleId }, applyUpdate)
+  })
 })
 
 app.delete('/api/admin/bookings/:id', requireAuth, (req, res) => {
@@ -444,7 +494,20 @@ app.get('/api/admin/drivers', requireAuth, (req, res) => {
   sql += ' ORDER BY firstName'
   db.all(sql, params, (err, rows) => {
     if (err) return res.status(500).json({ error: err.message })
-    res.json(rows)
+    const today = new Date().toISOString().split('T')[0]
+    db.all(
+      `SELECT entityId FROM compliance_overrides
+       WHERE entityType='driver' AND active=1 AND (expiresAt IS NULL OR expiresAt>=?)`,
+      [today],
+      (oErr, overrides) => {
+        const overridden = new Set((overrides || []).map(o => o.entityId))
+        rows = rows.map(r => {
+          const blockers = db.driverBlockers(r, today)
+          return { ...r, complianceBlockers: blockers.length, available: blockers.length === 0 || overridden.has(r.id) }
+        })
+        res.json(rows)
+      }
+    )
   })
 })
 
@@ -538,7 +601,20 @@ app.get('/api/admin/vehicles', requireAuth, (req, res) => {
   sql += ' ORDER BY v.make'
   db.all(sql, params, (err, rows) => {
     if (err) return res.status(500).json({ error: err.message })
-    res.json(rows)
+    const today = new Date().toISOString().split('T')[0]
+    db.all(
+      `SELECT entityId FROM compliance_overrides
+       WHERE entityType='vehicle' AND active=1 AND (expiresAt IS NULL OR expiresAt>=?)`,
+      [today],
+      (oErr, overrides) => {
+        const overridden = new Set((overrides || []).map(o => o.entityId))
+        rows = rows.map(r => {
+          const blockers = db.vehicleBlockers(r, today)
+          return { ...r, complianceBlockers: blockers.length, available: blockers.length === 0 || overridden.has(r.id) }
+        })
+        res.json(rows)
+      }
+    )
   })
 })
 
@@ -642,24 +718,29 @@ app.get('/api/admin/routes', requireAuth, (req, res) => {
 
 app.post('/api/admin/routes', requireAuth, (req, res) => {
   const d = req.body
-  db.run(
-    `INSERT INTO routes
-     (routeName,routeDate,departureTime,expectedReturnTime,
-      pickupAddress,dropoffAddress,viaPoints,
-      driverId,vehicleId,bookingId,serviceType,
-      passengerName,passengerCount,specialNotes,
-      status,fareCharged,distanceMiles,adminNotes)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-    [d.routeName,d.routeDate,d.departureTime,d.expectedReturnTime,
-     d.pickupAddress,d.dropoffAddress,d.viaPoints,
-     d.driverId||null,d.vehicleId||null,d.bookingId||null,d.serviceType,
-     d.passengerName,d.passengerCount,d.specialNotes,
-     d.status||'scheduled',d.fareCharged,d.distanceMiles,d.adminNotes],
-    function(err) {
-      if (err) return res.status(500).json({ error: err.message })
-      res.status(201).json({ id: this.lastID, success: true })
-    }
-  )
+
+  const insert = () => {
+    db.run(
+      `INSERT INTO routes
+       (routeName,routeDate,departureTime,expectedReturnTime,
+        pickupAddress,dropoffAddress,viaPoints,
+        driverId,vehicleId,bookingId,serviceType,
+        passengerName,passengerCount,specialNotes,
+        status,fareCharged,distanceMiles,adminNotes)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      [d.routeName,d.routeDate,d.departureTime,d.expectedReturnTime,
+       d.pickupAddress,d.dropoffAddress,d.viaPoints,
+       d.driverId||null,d.vehicleId||null,d.bookingId||null,d.serviceType,
+       d.passengerName,d.passengerCount,d.specialNotes,
+       d.status||'scheduled',d.fareCharged,d.distanceMiles,d.adminNotes],
+      function(err) {
+        if (err) return res.status(500).json({ error: err.message })
+        res.status(201).json({ id: this.lastID, success: true })
+      }
+    )
+  }
+
+  gateAssignment(req, res, { driverId: d.driverId || null, vehicleId: d.vehicleId || null }, insert)
 })
 
 app.patch('/api/admin/routes/:id', requireAuth, (req, res) => {
@@ -680,11 +761,24 @@ app.patch('/api/admin/routes/:id', requireAuth, (req, res) => {
     if (v !== undefined && v !== null) { updates.push(`${k}=?`); params.push(v) }
   })
   if (!updates.length) return res.status(400).json({ error: 'Nothing to update' })
-  params.push(req.params.id)
-  db.run(`UPDATE routes SET ${updates.join(',')} WHERE id=?`, params, function(err) {
-    if (err)           return res.status(500).json({ error: err.message })
-    if (!this.changes) return res.status(404).json({ error: 'Not found' })
-    res.json({ success: true })
+
+  const applyUpdate = () => {
+    params.push(req.params.id)
+    db.run(`UPDATE routes SET ${updates.join(',')} WHERE id=?`, params, function(err) {
+      if (err)           return res.status(500).json({ error: err.message })
+      if (!this.changes) return res.status(404).json({ error: 'Not found' })
+      res.json({ success: true })
+    })
+  }
+
+  if (d.driverId === undefined && d.vehicleId === undefined) return applyUpdate()
+
+  db.get('SELECT driverId, vehicleId FROM routes WHERE id=?', [req.params.id], (err, existing) => {
+    if (err)       return res.status(500).json({ error: err.message })
+    if (!existing) return res.status(404).json({ error: 'Not found' })
+    const driverId  = d.driverId  !== undefined ? d.driverId  : existing.driverId
+    const vehicleId = d.vehicleId !== undefined ? d.vehicleId : existing.vehicleId
+    gateAssignment(req, res, { driverId, vehicleId }, applyUpdate)
   })
 })
 
@@ -694,6 +788,73 @@ app.delete('/api/admin/routes/:id', requireAuth, (req, res) => {
     if (!this.changes) return res.status(404).json({ error: 'Not found' })
     res.json({ success: true })
   })
+})
+
+// ── COMPLIANCE ────────────────────────────────────────────────────
+
+// Compliance status for a driver. If ?vehicleId isn't given, falls back to
+// whichever vehicle is currently assigned to that driver.
+app.get('/api/admin/compliance/driver/:id', requireAuth, (req, res) => {
+  const driverId = req.params.id
+  const resolveVehicleId = (cb) => {
+    if (req.query.vehicleId) return cb(req.query.vehicleId)
+    db.get('SELECT id FROM vehicles WHERE assignedDriverId=?', [driverId], (_err, v) => cb(v ? v.id : null))
+  }
+  resolveVehicleId((vehicleId) => {
+    db.getAssignmentCompliance({ driverId, vehicleId }, (err, cStatus) => {
+      if (err) return res.status(500).json({ error: err.message })
+      if (!cStatus.driver) return res.status(404).json({ error: 'Driver not found' })
+      res.json(cStatus)
+    })
+  })
+})
+
+// Compliance status for a vehicle on its own (no driver context).
+app.get('/api/admin/compliance/vehicle/:id', requireAuth, (req, res) => {
+  db.getAssignmentCompliance({ vehicleId: req.params.id }, (err, cStatus) => {
+    if (err) return res.status(500).json({ error: err.message })
+    if (!cStatus.vehicle) return res.status(404).json({ error: 'Vehicle not found' })
+    res.json(cStatus)
+  })
+})
+
+// Audit log of overrides (most recent first)
+app.get('/api/admin/compliance/overrides', requireAuth, (req, res) => {
+  db.all(`SELECT * FROM compliance_overrides ORDER BY createdAt DESC LIMIT 200`, [], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message })
+    res.json(rows)
+  })
+})
+
+// Create an explicit operator override for a driver or vehicle
+app.post('/api/admin/compliance/override', requireAuth, (req, res) => {
+  const { entityType, entityId, reason, expiresAt } = req.body
+  if (!['driver', 'vehicle'].includes(entityType) || !entityId || !reason) {
+    return res.status(400).json({ error: 'entityType (driver|vehicle), entityId and reason are required' })
+  }
+  db.run(
+    `INSERT INTO compliance_overrides (entityType, entityId, reason, overriddenBy, expiresAt) VALUES (?,?,?,?,?)`,
+    [entityType, entityId, reason, req.admin.username, expiresAt || null],
+    function(err) {
+      if (err) return res.status(500).json({ error: err.message })
+      console.log(`  ◆  Compliance override created: ${entityType} #${entityId} by ${req.admin.username}`)
+      res.status(201).json({ id: this.lastID, success: true })
+    }
+  )
+})
+
+// Revoke an active override
+app.delete('/api/admin/compliance/override/:id', requireAuth, (req, res) => {
+  db.run(
+    `UPDATE compliance_overrides SET active=0, revokedAt=CURRENT_TIMESTAMP, revokedBy=?
+     WHERE id=? AND active=1`,
+    [req.admin.username, req.params.id],
+    function(err) {
+      if (err)           return res.status(500).json({ error: err.message })
+      if (!this.changes) return res.status(404).json({ error: 'Active override not found' })
+      res.json({ success: true })
+    }
+  )
 })
 
 // ── ALERTS + STATS ────────────────────────────────────────────────
