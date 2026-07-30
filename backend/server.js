@@ -19,6 +19,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'haraka-change-this-secret-2025'
 // Requires env vars: RESEND_API_KEY, NOTIFY_TO (your inbox).
 const NOTIFY_FROM = process.env.NOTIFY_FROM || 'Haraka Transport <notifications@harakatransport.co.uk>'
 const NOTIFY_TO   = process.env.NOTIFY_TO   || 'info@harakatransport.co.uk'
+const REPLY_TO    = process.env.REPLY_TO    || 'Admin@harakatransport.co.uk'
 
 async function notifyMe(subject, data) {
   if (!process.env.RESEND_API_KEY) {
@@ -42,6 +43,7 @@ async function notifyMe(subject, data) {
       body: JSON.stringify({
         from: NOTIFY_FROM,
         to: [NOTIFY_TO],
+        reply_to: REPLY_TO,
         subject,
         html: `<h2>${subject}</h2><table>${rows}</table>` +
               `<p style="color:#888;font-size:12px">Sent automatically by the Haraka API</p>`,
@@ -73,6 +75,7 @@ async function emailCustomer(booking, refId) {
       body: JSON.stringify({
         from: NOTIFY_FROM,
         to: [booking.email],
+        reply_to: REPLY_TO,
         subject: isQuote
           ? 'We\u2019ve received your quote request \u2014 Haraka Transport'
           : `Your booking request is confirmed \u2014 Haraka Transport (ref #${refId})`,

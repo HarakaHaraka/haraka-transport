@@ -12,6 +12,7 @@ const db = require('./db')
 // --- Resend sender (same pattern as server.js) ---
 const NOTIFY_FROM = process.env.NOTIFY_FROM || 'Haraka Transport <notifications@harakatransport.co.uk>'
 const ADMIN_EMAIL = process.env.NOTIFY_TO   || 'admin@harakatransport.co.uk'
+const REPLY_TO    = process.env.REPLY_TO    || 'Admin@harakatransport.co.uk'
 const WARN_DAYS   = parseInt(process.env.EXPIRY_WARN_DAYS || '30', 10) // 30-day advance warning
 
 async function sendEmail(to, subject, html) {
@@ -26,7 +27,7 @@ async function sendEmail(to, subject, html) {
         'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ from: NOTIFY_FROM, to: [to], subject, html }),
+      body: JSON.stringify({ from: NOTIFY_FROM, to: [to], reply_to: REPLY_TO, subject, html }),
     })
     if (!r.ok) console.error('  ◆  Expiry email failed:', r.status, await r.text())
     else console.log('  ◆  Expiry email sent:', subject, '->', to)
