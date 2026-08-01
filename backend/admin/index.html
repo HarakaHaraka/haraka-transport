@@ -491,6 +491,31 @@ tr:hover td{background:rgba(168,85,247,0.04)}
         <button type="button" class="btn btn-outline" onclick="document.getElementById('dr-modal-overlay').classList.remove('open')">Cancel</button>
       </div>
     </form>
+
+    <!-- Dedicated compliance-photo pipeline: separate endpoint from the
+         form above (validated, EXIF-stripped, consent-gated), only usable
+         once the driver record exists. -->
+    <div id="dr-photo-section" style="display:none;margin-top:18px;padding-top:16px;border-top:1px solid rgba(168,85,247,0.15)">
+      <p style="font-size:0.7rem;color:#A855F7;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:12px">Compliance Photo (for booking confirmations)</p>
+      <div id="dr-photo-warning" style="display:none;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:8px;padding:10px 14px;color:#F59E0B;font-size:0.8rem;margin-bottom:12px">
+        ⚠ No photo on file — this driver's bookings will go out without one.
+      </div>
+      <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap">
+        <img id="dr-photo-preview" style="display:none;width:120px;height:120px;object-fit:cover;border-radius:10px;border:1px solid rgba(168,85,247,0.3)"/>
+        <div style="flex:1;min-width:240px">
+          <p id="dr-photo-meta" style="font-size:0.78rem;color:#94A3B8;margin-bottom:10px"></p>
+          <div class="field"><label>Upload New Photo (JPEG/PNG, max 5MB)</label><input type="file" id="dr-photo-file" accept=".jpg,.jpeg,.png"/></div>
+          <label style="display:flex;gap:8px;align-items:flex-start;font-size:0.78rem;color:#CBD5E1;margin:10px 0;line-height:1.5">
+            <input type="checkbox" id="dr-photo-consent" style="margin-top:3px"/>
+            <span>The driver has given written consent under clause 4 of the Provider Agreement for their photograph to be shared with passengers in booking confirmations.</span>
+          </label>
+          <div style="display:flex;gap:10px">
+            <button type="button" class="btn btn-primary" onclick="uploadDriverPhoto()">Upload Photo</button>
+            <button type="button" class="btn btn-outline" id="dr-photo-remove-btn" style="display:none" onclick="removeDriverPhoto()">Remove Photo</button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -588,6 +613,20 @@ tr:hover td{background:rgba(168,85,247,0.04)}
   </div>
 </div>
 
+<!-- Phone read-out view: the details a phone operator reads aloud to
+     whoever answers, in large type, plus a resend button. -->
+<div class="overlay" id="ro-modal-overlay" onclick="closeOverlay(event,'ro-modal-overlay')">
+  <div class="modal" style="max-width:520px">
+    <button class="close-x" onclick="document.getElementById('ro-modal-overlay').classList.remove('open')">✕</button>
+    <h2>Read-out — ref #<span id="ro-ref"></span></h2>
+    <div id="ro-body" style="margin-top:16px;font-size:1.15rem;line-height:2.1"></div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" id="ro-resend-btn">Resend confirmation</button>
+      <button type="button" class="btn btn-outline" onclick="document.getElementById('ro-modal-overlay').classList.remove('open')">Close</button>
+    </div>
+  </div>
+</div>
+
 <style>@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}</style>
 
 <script>
@@ -630,7 +669,11 @@ async function api(method, path, body=null, isForm=false) {
   if (body && isForm)  { opts.body = body }
   const res  = await fetch(`${API}${path}`, opts)
   const data = await res.json()
-  if (!res.ok) throw new Error(data.error || 'API error')
+  if (!res.ok) {
+    const err = new Error(data.error || 'API error')
+    if (data.blockers) err.blockers = data.blockers
+    throw err
+  }
   return data
 }
 
@@ -816,6 +859,7 @@ async function openBookingDetail(id) {
       <div class="field"><label>Admin Notes</label><textarea id="bk-new-notes" rows="2">${b.adminNotes||''}</textarea></div>
       <div style="display:flex;gap:10px;margin-top:10px">
         <button class="btn btn-primary" onclick="saveBooking(${b.id})">Save Changes</button>
+        <button class="btn btn-outline" onclick="openReadout('booking',${b.id})">Read-out</button>
         <button class="btn btn-danger btn-sm" onclick="deleteBooking(${b.id})">Delete</button>
       </div>
     </div>`
@@ -823,15 +867,27 @@ async function openBookingDetail(id) {
   document.getElementById('bk-modal-overlay').classList.add('open')
 }
 
-async function saveBooking(id) {
+async function saveBooking(id, overrideReason=undefined) {
   const status      = document.getElementById('bk-new-status').value  || undefined
   const quotedPrice = document.getElementById('bk-new-price').value   || undefined
   const adminNotes  = document.getElementById('bk-new-notes').value   || undefined
   const assignedDriverId  = document.getElementById('bk-new-driver').value  || undefined
   const assignedVehicleId = document.getElementById('bk-new-vehicle').value || undefined
-  await api('PATCH',`/api/admin/bookings/${id}`,{status,quotedPrice,adminNotes,assignedDriverId,assignedVehicleId})
-  document.getElementById('bk-modal-overlay').classList.remove('open')
-  loadBookings(); loadQuotes(); loadRecentBookings()
+  try {
+    await api('PATCH',`/api/admin/bookings/${id}`,{status,quotedPrice,adminNotes,assignedDriverId,assignedVehicleId,complianceOverrideReason:overrideReason})
+    document.getElementById('bk-modal-overlay').classList.remove('open')
+    loadBookings(); loadQuotes(); loadRecentBookings()
+  } catch(err) {
+    // 409s from the compliance gate carry a `blockers` list — surface it,
+    // and offer an explicit, audited override rather than a dead end.
+    if (err.blockers?.length) {
+      const reasons = err.blockers.map(b => `• ${b.message}`).join('\n')
+      const reason = prompt(`This assignment is blocked:\n\n${reasons}\n\nEnter a reason to override and proceed anyway (leave blank to cancel):`)
+      if (reason) return saveBooking(id, reason)
+    } else {
+      alert(err.message)
+    }
+  }
 }
 
 async function deleteBooking(id) {
@@ -893,8 +949,59 @@ function openDriverModal(driver=null) {
       const el = form.elements[k]
       if (el && v) el.value = v
     })
+    loadDriverPhotoSection(driver.id)
+  } else {
+    document.getElementById('dr-photo-section').style.display = 'none'
   }
   document.getElementById('dr-modal-overlay').classList.add('open')
+}
+
+async function loadDriverPhotoSection(id) {
+  const section  = document.getElementById('dr-photo-section')
+  const warning  = document.getElementById('dr-photo-warning')
+  const preview  = document.getElementById('dr-photo-preview')
+  const removeBtn = document.getElementById('dr-photo-remove-btn')
+  const metaP    = document.getElementById('dr-photo-meta')
+  section.style.display = 'block'
+  document.getElementById('dr-photo-file').value = ''
+  document.getElementById('dr-photo-consent').checked = false
+  preview.style.display = 'none'
+
+  const meta = await api('GET', `/api/admin/drivers/${id}/photo?meta=1`)
+  if (meta.photo_path) {
+    warning.style.display = 'none'
+    removeBtn.style.display = 'inline-block'
+    metaP.textContent = `Uploaded ${meta.photo_uploaded_at ? new Date(meta.photo_uploaded_at).toLocaleString() : '—'}` +
+      ` · consent recorded ${meta.photo_consent_at ? new Date(meta.photo_consent_at).toLocaleString() : '—'}`
+    const res = await fetch(`${API}/api/admin/drivers/${id}/photo`, { headers: { 'Authorization': `Bearer ${TOKEN}` } })
+    if (res.ok) { preview.src = URL.createObjectURL(await res.blob()); preview.style.display = 'block' }
+  } else {
+    warning.style.display = 'block'
+    removeBtn.style.display = 'none'
+    metaP.textContent = 'No photo uploaded yet.'
+  }
+}
+
+async function uploadDriverPhoto() {
+  if (!editingDriverId) return alert('Save the driver record first, then upload a photo.')
+  const fileInput = document.getElementById('dr-photo-file')
+  const consent = document.getElementById('dr-photo-consent').checked
+  if (!fileInput.files[0]) return alert('Choose a photo file first.')
+  if (!consent) return alert('Consent is required before a photo can be saved.')
+  const form = new FormData()
+  form.append('photo', fileInput.files[0])
+  form.append('consent', 'true')
+  try {
+    await api('POST', `/api/admin/drivers/${editingDriverId}/photo`, form, true)
+    await loadDriverPhotoSection(editingDriverId)
+  } catch (err) { alert(err.message) }
+}
+
+async function removeDriverPhoto() {
+  if (!editingDriverId) return
+  if (!confirm("Remove this driver's photo?")) return
+  await api('DELETE', `/api/admin/drivers/${editingDriverId}/photo`)
+  await loadDriverPhotoSection(editingDriverId)
 }
 
 async function editDriver(id) {
@@ -1039,6 +1146,7 @@ async function loadRoutes() {
           <td><span class="badge b-${r.status.replace('-','')}">${r.status}</span></td>
           <td style="display:flex;gap:6px">
             <button class="btn btn-sm btn-outline" onclick="editRoute(${r.id})">Edit</button>
+            <button class="btn btn-sm btn-outline" onclick="openReadout('route',${r.id})">Read-out</button>
             <button class="btn btn-sm btn-danger"  onclick="deleteRoute(${r.id})">Del</button>
           </td>
         </tr>`).join('')
@@ -1066,10 +1174,11 @@ async function editRoute(id) {
   openRouteModal(r)
 }
 
-async function submitRoute(e) {
+async function submitRoute(e, overrideReason=undefined) {
   e.preventDefault()
   const form = document.getElementById('rt-form')
   const data = Object.fromEntries(new FormData(form))
+  if (overrideReason) data.complianceOverrideReason = overrideReason
   try {
     if (editingRouteId) {
       await api('PATCH',`/api/admin/routes/${editingRouteId}`, data)
@@ -1078,7 +1187,15 @@ async function submitRoute(e) {
     }
     document.getElementById('rt-modal-overlay').classList.remove('open')
     loadRoutes()
-  } catch(err) { alert(err.message) }
+  } catch(err) {
+    if (err.blockers?.length) {
+      const reasons = err.blockers.map(b => `• ${b.message}`).join('\n')
+      const reason = prompt(`This assignment is blocked:\n\n${reasons}\n\nEnter a reason to override and proceed anyway (leave blank to cancel):`)
+      if (reason) return submitRoute(e, reason)
+    } else {
+      alert(err.message)
+    }
+  }
 }
 
 async function deleteRoute(id) {
@@ -1134,6 +1251,30 @@ async function exportCSV() {
 }
 
 /* ════ HELPERS ════ */
+/* ── Phone read-out view ── */
+async function openReadout(source, id) {
+  document.getElementById('ro-ref').textContent = id
+  document.getElementById('ro-body').innerHTML = 'Loading…'
+  document.getElementById('ro-modal-overlay').classList.add('open')
+  try {
+    const p = await api('GET', `/api/admin/${source==='route'?'routes':'bookings'}/${id}/readout`)
+    document.getElementById('ro-body').innerHTML = `
+      <p><strong>Passenger:</strong> ${p.passengerName}</p>
+      <p><strong>Pick-up:</strong> ${p.pickupAddress||'—'} → ${p.destinationAddress||'—'}</p>
+      <p><strong>Date/time:</strong> ${p.pickupDateTime}</p>
+      <p><strong>Driver:</strong> ${p.driverFirstName} — PCO ${p.driverPcoLicenceNumber}</p>
+      ${p.passengerAssistantFirstName ? `<p><strong>Assistant:</strong> ${p.passengerAssistantFirstName}</p>` : ''}
+      <p><strong>Vehicle:</strong> ${p.vehicleColour||''} ${p.vehicleMake} ${p.vehicleModel} — ${p.vehicleRegistrationMark}</p>`
+    document.getElementById('ro-resend-btn').onclick = async () => {
+      const result = await api('POST', `/api/admin/${source==='route'?'routes':'bookings'}/${id}/send-confirmation`)
+      alert(result.sent ? 'Confirmation sent.' : `Not sent — email: ${result.email?.reason||'ok'}, sms: ${result.sms?.reason||'ok'}`)
+    }
+  } catch(err) {
+    document.getElementById('ro-body').innerHTML = `<p style="color:#F87171;font-size:0.9rem">${err.message}</p>`
+    document.getElementById('ro-resend-btn').onclick = () => {}
+  }
+}
+
 function openModal(id) { document.getElementById(id).classList.add('open') }
 function closeOverlay(e, id) { if(e.target===document.getElementById(id)) document.getElementById(id).classList.remove('open') }
 

@@ -9,6 +9,9 @@ export default function TermsPage() {
         <Prose text={`These terms govern all bookings made with ${COMPANY.legalName}, a private hire operator licensed by Transport for London. By making a booking — by telephone, email, our website, or through a commissioning authority — you accept these terms. Registered in England & Wales, company number ${COMPANY.companyNumber}, registered office ${COMPANY.registeredOffice}.
 
 All journeys are pre-booked. We do not accept street hails or provide an on-demand service. We arrange journeys using Transport for London licensed private hire drivers and licensed private hire vehicles.`} />
+        <p>{COMPANY.operatorLicenceNumber
+          ? `TfL private hire operator's licence number: ${COMPANY.operatorLicenceNumber}`
+          : COMPANY.operatorLicencePendingText}</p>
       </PolicySection>
 
       <PolicySection heading="Our contract with you">

@@ -56,8 +56,9 @@ function Step1({ onNext, defaultService }) {
         </h2>
 
         <div style={{ marginBottom: '16px' }}>
-          <label style={labelStyle}>Service Type *</label>
+          <label style={labelStyle} htmlFor="bk-serviceType">Service Type *</label>
           <select
+            id="bk-serviceType"
             style={{ ...inputStyle, cursor: 'pointer' }}
             {...register('serviceType', { required: 'Please select a service type' })}
           >
@@ -68,8 +69,9 @@ function Step1({ onNext, defaultService }) {
         </div>
 
         <div style={{ marginBottom: '16px' }}>
-          <label style={labelStyle}>Pickup Address *</label>
+          <label style={labelStyle} htmlFor="bk-pickupAddress">Pickup Address *</label>
           <input
+            id="bk-pickupAddress"
             style={inputStyle}
             placeholder="Full pickup address"
             {...register('pickupAddress', { required: 'Pickup address is required' })}
@@ -78,8 +80,9 @@ function Step1({ onNext, defaultService }) {
         </div>
 
         <div style={{ marginBottom: '16px' }}>
-          <label style={labelStyle}>Drop-off Address *</label>
+          <label style={labelStyle} htmlFor="bk-dropoffAddress">Drop-off Address *</label>
           <input
+            id="bk-dropoffAddress"
             style={inputStyle}
             placeholder="Full destination address"
             {...register('dropoffAddress', { required: 'Drop-off address is required' })}
@@ -89,8 +92,9 @@ function Step1({ onNext, defaultService }) {
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
           <div>
-            <label style={labelStyle}>Date *</label>
+            <label style={labelStyle} htmlFor="bk-pickupDate">Date *</label>
             <input
+              id="bk-pickupDate"
               type="date"
               style={inputStyle}
               {...register('pickupDate', { required: 'Date is required' })}
@@ -98,8 +102,9 @@ function Step1({ onNext, defaultService }) {
             {errors.pickupDate && <p style={errStyle}>{errors.pickupDate.message}</p>}
           </div>
           <div>
-            <label style={labelStyle}>Time *</label>
+            <label style={labelStyle} htmlFor="bk-pickupTime">Time *</label>
             <input
+              id="bk-pickupTime"
               type="time"
               style={inputStyle}
               {...register('pickupTime', { required: 'Time is required' })}
@@ -110,8 +115,9 @@ function Step1({ onNext, defaultService }) {
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
           <div>
-            <label style={labelStyle}>Passengers *</label>
+            <label style={labelStyle} htmlFor="bk-passengers">Passengers *</label>
             <input
+              id="bk-passengers"
               type="number" min="1" max="16"
               style={inputStyle}
               placeholder="1"
@@ -124,8 +130,9 @@ function Step1({ onNext, defaultService }) {
             {errors.passengers && <p style={errStyle}>{errors.passengers.message}</p>}
           </div>
           <div>
-            <label style={labelStyle}>Luggage Items</label>
+            <label style={labelStyle} htmlFor="bk-luggage">Luggage Items</label>
             <input
+              id="bk-luggage"
               type="number" min="0"
               style={inputStyle}
               placeholder="0"
@@ -135,8 +142,9 @@ function Step1({ onNext, defaultService }) {
         </div>
 
         <div style={{ marginBottom: '16px' }}>
-          <label style={labelStyle}>Flight Number (if airport)</label>
+          <label style={labelStyle} htmlFor="bk-flightNumber">Flight Number (if airport)</label>
           <input
+            id="bk-flightNumber"
             style={inputStyle}
             placeholder="e.g. BA0123"
             {...register('flightNumber')}
@@ -144,8 +152,9 @@ function Step1({ onNext, defaultService }) {
         </div>
 
         <div>
-          <label style={labelStyle}>Special Requirements</label>
+          <label style={labelStyle} htmlFor="bk-specialRequirements">Special Requirements</label>
           <textarea
+            id="bk-specialRequirements"
             rows={3}
             style={{ ...inputStyle, resize: 'vertical' }}
             placeholder="Wheelchair access, child seats, meet & greet…"
@@ -174,8 +183,9 @@ function Step2({ onNext, onBack }) {
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
           <div>
-            <label style={labelStyle}>First Name *</label>
+            <label style={labelStyle} htmlFor="bk-firstName">First Name *</label>
             <input
+              id="bk-firstName"
               style={inputStyle}
               placeholder="Jane"
               {...register('firstName', { required: 'Required' })}
@@ -183,8 +193,9 @@ function Step2({ onNext, onBack }) {
             {errors.firstName && <p style={errStyle}>{errors.firstName.message}</p>}
           </div>
           <div>
-            <label style={labelStyle}>Last Name *</label>
+            <label style={labelStyle} htmlFor="bk-lastName">Last Name *</label>
             <input
+              id="bk-lastName"
               style={inputStyle}
               placeholder="Smith"
               {...register('lastName', { required: 'Required' })}
@@ -194,8 +205,9 @@ function Step2({ onNext, onBack }) {
         </div>
 
         <div style={{ marginBottom: '16px' }}>
-          <label style={labelStyle}>Email Address *</label>
+          <label style={labelStyle} htmlFor="bk-email">Email Address *</label>
           <input
+            id="bk-email"
             type="email"
             style={inputStyle}
             placeholder="jane@example.com"
@@ -208,8 +220,9 @@ function Step2({ onNext, onBack }) {
         </div>
 
         <div style={{ marginBottom: '16px' }}>
-          <label style={labelStyle}>Phone Number *</label>
+          <label style={labelStyle} htmlFor="bk-phone">Phone Number *</label>
           <input
+            id="bk-phone"
             type="tel"
             style={inputStyle}
             placeholder="+44 7700 000000"
@@ -219,8 +232,8 @@ function Step2({ onNext, onBack }) {
         </div>
 
         <div>
-          <label style={labelStyle}>How did you hear about us?</label>
-          <select style={{ ...inputStyle, cursor: 'pointer' }} {...register('referralSource')}>
+          <label style={labelStyle} htmlFor="bk-referralSource">How did you hear about us?</label>
+          <select id="bk-referralSource" style={{ ...inputStyle, cursor: 'pointer' }} {...register('referralSource')}>
             <option value="">— Select (optional) —</option>
             {['Google', 'Social Media', 'Referral / Word of Mouth', 'Returning Customer', 'Other'].map(r =>
               <option key={r} value={r}>{r}</option>

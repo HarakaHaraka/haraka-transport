@@ -97,10 +97,11 @@ export default function QuotePage() {
 }
 
 function Field({ label, ...props }) {
+  const id = `qt-${props.name}`
   return (
     <div style={{ display: 'flex', flexDirection: 'column' }}>
-      <label style={lbl}>{label}</label>
-      <input {...props} style={input} />
+      <label style={lbl} htmlFor={id}>{label}</label>
+      <input id={id} {...props} style={input} />
     </div>
   )
 }

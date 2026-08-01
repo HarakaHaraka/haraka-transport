@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, cloneElement } from 'react'
 import { useForm } from 'react-hook-form'
 import { useNavigate, Link } from 'react-router-dom'
 import { COMPANY } from '../config/company'
@@ -13,10 +13,11 @@ const inp = {
 }
 
 function Field({ label, error, children }) {
+  const id = `ct-${label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')}`
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-      <label className="field-label">{label}</label>
-      {children}
+      <label className="field-label" htmlFor={id}>{label}</label>
+      {cloneElement(children, { id })}
       {error && <p className="field-error">{error}</p>}
     </div>
   )

@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, cloneElement } from 'react'
 import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 
@@ -12,10 +12,11 @@ const inp = {
 }
 
 function Field({ label, error, children, required }) {
+  const id = `ju-${label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')}`
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-      <label className="field-label">{label}{required && ' *'}</label>
-      {children}
+      <label className="field-label" htmlFor={id}>{label}{required && ' *'}</label>
+      {cloneElement(children, { id })}
       {error && <p className="field-error">{error}</p>}
     </div>
   )

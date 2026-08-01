@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "node scripts/check-banned-terms.cjs && vite build && node scripts/check-bundle-safety.cjs",
     "preview": "vite preview"
   },
   "dependencies": {

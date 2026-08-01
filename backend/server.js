@@ -679,6 +679,21 @@ app.post('/api/admin/drivers/:id/photo', requireAuth, photoUpload.single('photo'
   })
 })
 
+// Authenticated preview for the admin UI (distinct from the tokenised
+// customer-facing /p/:token route — admins are already logged in).
+app.get('/api/admin/drivers/:id/photo', requireAuth, (req, res) => {
+  db.get('SELECT photo_path, photo_uploaded_at, photo_consent, photo_consent_at FROM drivers WHERE id=?', [req.params.id], (err, driver) => {
+    if (err)      return res.status(500).json({ error: err.message })
+    if (!driver)  return res.status(404).json({ error: 'Driver not found' })
+    if (req.query.meta === '1') return res.json(driver)
+    if (!driver.photo_path) return res.status(404).json({ error: 'No photo on file' })
+    res.set('Cache-Control', 'private, no-store')
+    res.sendFile(photoService.photoPath(driver.photo_path), (sendErr) => {
+      if (sendErr && !res.headersSent) res.status(404).json({ error: 'No photo on file' })
+    })
+  })
+})
+
 app.delete('/api/admin/drivers/:id/photo', requireAuth, (req, res) => {
   db.get('SELECT photo_path FROM drivers WHERE id=?', [req.params.id], (err, driver) => {
     if (err)      return res.status(500).json({ error: err.message })
