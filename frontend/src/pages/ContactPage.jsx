@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
+import { COMPANY } from '../config/company'
 
 const API = 'https://harakatransport.co.uk'
 
@@ -73,30 +74,30 @@ export default function ContactPage() {
           {/* Contact details */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
-            {/* VCR Voice Contact */}
+            {/* Bookings phone */}
             <div style={{ background: 'rgba(245,158,11,0.08)', border: '2px solid rgba(245,158,11,0.3)', borderRadius: '16px', padding: '24px' }}>
               <div style={{ display: 'flex', gap: '14px', alignItems: 'flex-start' }}>
                 <div style={{ fontSize: '2rem' }}>📞</div>
                 <div>
                   <p style={{ fontSize: '0.65rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#F59E0B', marginBottom: '6px', fontWeight: 700 }}>
-                    Voice Contact — TFL Licensed
+                    Bookings — TfL Licensed Private Hire
                   </p>
                   <p style={{ fontSize: '1.4rem', fontWeight: 800, color: 'white', marginBottom: '4px' }}>
-                    [INSERT VCR VOICE CONTACT NUMBER]
+                    {COMPANY.phone}
                   </p>
-                  <p style={{ fontSize: '0.8rem', color: '#94A3B8' }}>Available 24 hours / 7 days a week</p>
+                  <p style={{ fontSize: '0.8rem', color: '#94A3B8' }}>{COMPANY.operatingHours}</p>
                   <p style={{ fontSize: '0.72rem', color: 'rgba(245,158,11,0.7)', marginTop: '8px' }}>
-                    As a TFL licensed operator, a voice contact is available at all times for booking enquiries and passenger assistance.
+                    Our office is not open to the public and we do not accept callers without an appointment.
+                    All bookings are made by phone, email or through this website.
                   </p>
                 </div>
               </div>
             </div>
 
             {[
-              { icon: '✉️', label: 'General Enquiries', value: '[INSERT GENERAL EMAIL]', sub: 'We respond within 2 hours' },
-              { icon: '📋', label: 'Bookings', value: '[INSERT BOOKINGS EMAIL]', sub: 'Or use our online booking form' },
-              { icon: '⚖️', label: 'Complaints', value: '[INSERT COMPLAINTS EMAIL]', sub: 'Responded to within [X] working days' },
-              { icon: '💼', label: 'Recruitment', value: '[INSERT RECRUITMENT EMAIL]', sub: 'For driver and PA applications' },
+              { icon: '✉️', label: 'General Enquiries', value: COMPANY.email, sub: `Contact: ${COMPANY.contactPerson}` },
+              { icon: '📋', label: 'Bookings', value: COMPANY.bookingsEmail, sub: 'Or use our online booking form' },
+              { icon: '⚖️', label: 'Complaints', value: COMPANY.email, sub: 'See our Complaints policy for response timescales' },
             ].map(({ icon, label, value, sub }) => (
               <div key={label} className="glass-card" style={{ padding: '20px', display: 'flex', gap: '14px', alignItems: 'flex-start' }}>
                 <div style={{ fontSize: '1.5rem', flexShrink: 0 }}>{icon}</div>
@@ -114,14 +115,13 @@ export default function ContactPage() {
               <div>
                 <p style={{ fontSize: '0.65rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#A855F7', marginBottom: '4px', fontWeight: 700 }}>Registered Address</p>
                 <p style={{ fontSize: '0.9rem', color: 'white', lineHeight: 1.7 }}>
-                  Haraka Transport Ltd<br />
-                  [INSERT REGISTERED ADDRESS LINE 1]<br />
-                  [INSERT ADDRESS LINE 2]<br />
-                  London<br />
-                  [INSERT POSTCODE]
+                  {COMPANY.legalName}<br />
+                  {COMPANY.registeredOffice}
                 </p>
                 <p style={{ fontSize: '0.72rem', color: '#94A3B8', marginTop: '8px' }}>
-                  Company No: [INSERT] · TFL Operator Licence: [INSERT]
+                  Company No: {COMPANY.companyNumber} · {COMPANY.operatorLicenceNumber
+                    ? `TfL Operator Licence: ${COMPANY.operatorLicenceNumber}`
+                    : 'TfL Operator Licence: application pending'}
                 </p>
               </div>
             </div>
@@ -174,6 +174,10 @@ export default function ContactPage() {
               <button type="submit" className="btn-primary" style={{ padding: '14px', opacity: submitting ? 0.6 : 1 }} disabled={submitting}>
                 {submitting ? 'Sending…' : 'Send Message →'}
               </button>
+              <p style={{ fontSize: '0.72rem', color: '#94A3B8', lineHeight: 1.6 }}>
+                By submitting this form you agree to our <Link to="/privacy" style={{ color: '#A855F7' }}>Privacy Policy</Link>.
+                Enquiries submitted here are retained for 12 months.
+              </p>
             </form>
           </div>
         </div>

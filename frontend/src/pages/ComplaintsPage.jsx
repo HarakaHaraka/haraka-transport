@@ -1,121 +1,62 @@
-import { useNavigate } from 'react-router-dom'
+import { COMPANY } from '../config/company'
+import { PolicyPage, PolicySection, Prose, PolicyTable, PolicyReference, PolicyLink } from '../components/PolicyPage'
 
 export default function ComplaintsPage() {
-  const navigate = useNavigate()
-
   return (
-    <div style={{ background: '#0F0A1E', minHeight: '100vh', paddingTop: '90px', paddingBottom: '60px' }}>
-      <div style={{ maxWidth: '860px', margin: '0 auto', padding: '0 24px' }}>
+    <PolicyPage
+      title="Complaints"
+      badge="Legal"
+      intro="We welcome complaints. A complaint tells us something is wrong before it becomes serious — and the passengers whose journeys we arrange are frequently people who find it difficult to raise concerns themselves."
+    >
+      <PolicySection heading="How to complain">
+        <PolicyTable
+          headers={['Channel', 'Details']}
+          rows={[
+            ['Phone', COMPANY.phone],
+            ['Email', COMPANY.email],
+            ['Online', 'Our contact form'],
+            ['Post', COMPANY.tradingAddress],
+            ['In person', 'To any assigned driver or passenger assistant, who will record it and pass it to Haraka the same day.'],
+          ]}
+        />
+        <Prose text={`We accept complaints from a passenger, parent, carer, school, social worker, commissioner or member of the public. We accept complaints made by a representative or advocate. We provide support to complain in an accessible format on request. We investigate anonymous complaints as far as is practicable.`} />
+      </PolicySection>
 
-        <div style={{ textAlign: 'center', marginBottom: '48px' }}>
-          <span className="badge badge-purple" style={{ marginBottom: '14px', display: 'inline-block' }}>Policy</span>
-          <h1 style={{ fontSize: 'clamp(2rem, 5vw, 3rem)', fontWeight: 900, color: 'white', marginBottom: '12px' }}>
-            Refunds & Complaints
-          </h1>
-          <p style={{ color: '#94A3B8', fontSize: '0.9rem' }}>
-            Haraka Transport Ltd · Last updated: [INSERT DATE]
-          </p>
-        </div>
+      <PolicySection heading="Our process">
+        <PolicyTable
+          headers={['Stage', 'Action', 'Timescale']}
+          rows={[
+            ['Receipt', 'Complaint logged in the complaints register; unique reference issued', 'Same working day'],
+            ['Acknowledgement', 'Written acknowledgement naming the investigating officer', 'Within 2 working days'],
+            ['Investigation', 'Records, route data and provider account reviewed; driver or assistant interviewed where relevant', '—'],
+            ['Response', 'Full written response: findings, decision, action taken, apology where due', 'Within 10 working days'],
+            ['Extension', 'If more time is needed, you are told the reason and given a new date', 'Before day 10'],
+            ['Review', 'If dissatisfied, escalation to the Director for review', 'Within 10 working days'],
+            ['External escalation', 'You may escalate to the commissioning authority and the Local Government and Social Care Ombudsman', '—'],
+          ]}
+        />
+      </PolicySection>
 
-        {[
-          {
-            title: '1. Our Commitment',
-            content: `Haraka Transport Ltd is committed to providing a professional and reliable service. If something goes wrong, we want to hear about it and put it right as quickly as possible.
+      <PolicySection heading="Urgent complaints">
+        <Prose text={`Complaints involving safeguarding, passenger safety or discrimination are escalated to the Director and Designated Safeguarding Lead immediately, handled under our Safeguarding Policy where relevant, and are not held to the standard timescale.`} />
+      </PolicySection>
 
-We aim to resolve all complaints within [INSERT TIMEFRAME] working days.`
-          },
-          {
-            title: '2. How to Make a Complaint',
-            content: `You can make a complaint by:
+      <PolicySection heading="Refunds and redress">
+        <Prose text={`Where a complaint is upheld and you paid for the journey directly, we refund in full or in part depending on what went wrong, and we tell you the outcome in the written response. Refunds are paid by the method used for the original payment within 10 working days of the decision.
 
-- Email: [INSERT COMPLAINTS EMAIL ADDRESS]
-- Phone: [INSERT VCR VOICE CONTACT NUMBER] (available [INSERT HOURS])
-- In writing to: [INSERT REGISTERED BUSINESS ADDRESS]
+For journeys arranged and paid for by a local authority, no charge falls to you and any redress is agreed with the authority.`} />
+        <p style={{ marginTop: '-8px' }}>Cancellation charges are set out in our <PolicyLink to="/terms">Terms & Conditions</PolicyLink>.</p>
+      </PolicySection>
 
-Please include:
-- Your name and contact details
-- Your booking reference number
-- Date and details of the journey
-- Description of the issue
-- What resolution you are seeking`
-          },
-          {
-            title: '3. Complaint Investigation Process',
-            content: `Step 1 — Acknowledgement
-We will acknowledge your complaint within [INSERT TIMEFRAME] working days of receipt.
+      <PolicySection heading="Compliments">
+        <Prose text={`Recorded in the same register and shared with the provider concerned.`} />
+      </PolicySection>
 
-Step 2 — Investigation
-We will investigate your complaint thoroughly. This may include reviewing journey records, speaking with the driver, and reviewing any relevant evidence.
+      <PolicySection heading="Learning">
+        <Prose text={`The complaints register records the theme, outcome and action taken. The Director reviews the register monthly to identify patterns. Where a complaint reveals a systemic issue, the relevant policy is amended and the change recorded.`} />
+      </PolicySection>
 
-Step 3 — Response
-We will provide a full written response within [INSERT TIMEFRAME] working days.
-
-Step 4 — Escalation
-If you are not satisfied with our response, you may escalate your complaint to:
-- Transport for London (TFL): tfl.gov.uk/contact
-- Citizens Advice: citizensadvice.org.uk`
-          },
-          {
-            title: '4. Refund Policy',
-            content: `[INSERT YOUR FULL REFUND POLICY HERE]
-
-Include:
-- Circumstances where a full refund is issued
-- Circumstances where a partial refund is issued
-- Circumstances where no refund is issued
-- Timeframe for refund processing
-- Method of refund (original payment method)
-- Any deductions that may apply`
-          },
-          {
-            title: '5. Cancellation Refunds',
-            content: `[INSERT YOUR CANCELLATION REFUND SCHEDULE HERE]
-
-Example format:
-- Cancelled more than 24 hours before journey: [INSERT REFUND %]
-- Cancelled 12-24 hours before journey: [INSERT REFUND %]
-- Cancelled less than 12 hours before journey: [INSERT REFUND %]
-- No-show: [INSERT REFUND %]`
-          },
-          {
-            title: '6. SEN and Local Authority Bookings',
-            content: `For complaints relating to SEN transport, school run or local authority contracted journeys, please contact us using the details above and quote your contract reference number.
-
-Complaints relating to safeguarding matters will be treated with the highest priority and referred to our Designated Safeguarding Lead immediately.
-
-Safeguarding Lead: [INSERT NAME]
-Contact: [INSERT CONTACT DETAILS]`
-          },
-          {
-            title: '7. TFL Complaints',
-            content: `As a TFL licensed private hire operator, you also have the right to raise concerns directly with Transport for London:
-
-Transport for London
-Private Hire Licensing
-PO Box 77923
-London
-SW1P 9SH
-
-Tel: 0343 222 4000
-Web: tfl.gov.uk/contact`
-          },
-        ].map((s, i) => (
-          <div key={i} className="glass-card" style={{ padding: '28px', marginBottom: '16px' }}>
-            <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#A855F7', marginBottom: '14px' }}>{s.title}</h2>
-            <div style={{ width: '32px', height: '2px', background: 'linear-gradient(to right, #F59E0B, #A855F7)', borderRadius: '1px', marginBottom: '14px' }} />
-            <p style={{ color: '#94A3B8', lineHeight: 1.85, fontSize: '0.9rem', whiteSpace: 'pre-line' }}>{s.content}</p>
-          </div>
-        ))}
-
-        <div style={{ display: 'flex', gap: '14px', justifyContent: 'center', marginTop: '40px', flexWrap: 'wrap' }}>
-          <button className="btn-outline" onClick={() => navigate('/terms')} style={{ fontSize: '0.85rem' }}>
-            Terms & Conditions
-          </button>
-          <button className="btn-primary" onClick={() => navigate('/')} style={{ fontSize: '0.85rem' }}>
-            Back to Homepage
-          </button>
-        </div>
-      </div>
-    </div>
+      <PolicyReference policyName="Complaints Policy" reference="HTL-POL-05" />
+    </PolicyPage>
   )
 }
