@@ -1,14 +1,18 @@
 require('dotenv').config()
-const express  = require('express')
-const cors     = require('cors')
-const path     = require('path')
-const jwt      = require('jsonwebtoken')
-const bcrypt   = require('bcrypt')
-const multer   = require('multer')
-const fs       = require('fs')
-const db       = require('./db')
+const express     = require('express')
+const cors        = require('cors')
+const path        = require('path')
+const jwt         = require('jsonwebtoken')
+const bcrypt      = require('bcrypt')
+const multer      = require('multer')
+const fs          = require('fs')
+const rateLimit   = require('express-rate-limit')
+const db          = require('./db')
 const { runExpiryCheck } = require('./expiryAlerts')
-const dvsaMot  = require('./dvsaMot')
+const photoService = require('./photoService')
+const motService   = require('./services/motService')
+const { sendSms }  = require('./smsService')
+const { assembleConfirmation, sendBookingConfirmation } = require('./confirmationService')
 
 const app        = express()
 const PORT       = process.env.PORT || 3001
@@ -143,6 +147,27 @@ const storage = multer.diskStorage({
   filename:    (_req, file, cb) => cb(null, `${Date.now()}-${file.originalname.replace(/\s+/g,'_')}`),
 })
 const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } })
+
+// ── Tokenised driver photo access ──────────────────────────────────
+// Not express.static'd, not listed anywhere, not guessable — a signed,
+// single-purpose, expiring token is the only way in. Rate-limited so a
+// leaked/guessed token can't be hammered.
+const photoTokenLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, max: 30,
+  standardHeaders: true, legacyHeaders: false,
+})
+app.get('/p/:token', photoTokenLimiter, (req, res) => {
+  const claim = photoService.verifyPhotoToken(req.params.token)
+  if (!claim) return res.status(404).end()
+
+  db.get('SELECT photo_path FROM drivers WHERE id=?', [claim.driverId], (err, driver) => {
+    if (err || !driver || !driver.photo_path) return res.status(404).end()
+    res.set({ 'Cache-Control': 'private, no-store', 'X-Robots-Tag': 'noindex' })
+    res.sendFile(photoService.photoPath(driver.photo_path), (sendErr) => {
+      if (sendErr && !res.headersSent) res.status(404).end()
+    })
+  })
+})
 
 // ── Auth middleware ────────────────────────────────────────────────
 const requireAuth = (req, res, next) => {
@@ -444,33 +469,45 @@ app.get('/api/admin/bookings/:id', requireAuth, (req, res) => {
 })
 
 app.patch('/api/admin/bookings/:id', requireAuth, (req, res) => {
-  const { status, adminNotes, quotedPrice, assignedDriverId, assignedVehicleId } = req.body
+  const { status, adminNotes, quotedPrice, assignedDriverId, assignedVehicleId, assignedAssistantId } = req.body
 
-  const applyUpdate = () => {
+  const applyUpdate = (existing) => {
     db.run(
       `UPDATE bookings SET
        status=COALESCE(?,status), adminNotes=COALESCE(?,adminNotes),
        quotedPrice=COALESCE(?,quotedPrice),
        assignedDriverId=COALESCE(?,assignedDriverId),
-       assignedVehicleId=COALESCE(?,assignedVehicleId)
+       assignedVehicleId=COALESCE(?,assignedVehicleId),
+       assignedAssistantId=COALESCE(?,assignedAssistantId)
        WHERE id=?`,
-      [status,adminNotes,quotedPrice,assignedDriverId,assignedVehicleId,req.params.id],
+      [status,adminNotes,quotedPrice,assignedDriverId,assignedVehicleId,assignedAssistantId,req.params.id],
       function(err) {
         if (err)           return res.status(500).json({ error: err.message })
         if (!this.changes) return res.status(404).json({ error: 'Not found' })
         res.json({ success: true })
+
+        // Private hire: one confirmation per booking, fired the moment
+        // both a driver and vehicle are assigned. Fire-and-forget so it
+        // never delays the response — same pattern as notifyMe/emailCustomer.
+        const driverId  = assignedDriverId  !== undefined ? assignedDriverId  : existing?.assignedDriverId
+        const vehicleId = assignedVehicleId !== undefined ? assignedVehicleId : existing?.assignedVehicleId
+        if (driverId && vehicleId && !existing?.confirmation_sent) {
+          sendBookingConfirmation(db, { source: 'booking', id: req.params.id }).then((result) => {
+            if (result.sent) db.run('UPDATE bookings SET confirmation_sent=1 WHERE id=?', [req.params.id])
+          })
+        }
       }
     )
   }
 
-  if (assignedDriverId === undefined && assignedVehicleId === undefined) return applyUpdate()
+  if (assignedDriverId === undefined && assignedVehicleId === undefined) return applyUpdate(null)
 
-  db.get('SELECT assignedDriverId, assignedVehicleId FROM bookings WHERE id=?', [req.params.id], (err, existing) => {
+  db.get('SELECT assignedDriverId, assignedVehicleId, confirmation_sent FROM bookings WHERE id=?', [req.params.id], (err, existing) => {
     if (err)       return res.status(500).json({ error: err.message })
     if (!existing) return res.status(404).json({ error: 'Not found' })
     const driverId  = assignedDriverId  !== undefined ? assignedDriverId  : existing.assignedDriverId
     const vehicleId = assignedVehicleId !== undefined ? assignedVehicleId : existing.assignedVehicleId
-    gateAssignment(req, res, { driverId, vehicleId }, applyUpdate)
+    gateAssignment(req, res, { driverId, vehicleId }, () => applyUpdate(existing))
   })
 })
 
@@ -480,6 +517,24 @@ app.delete('/api/admin/bookings/:id', requireAuth, (req, res) => {
     if (!this.changes) return res.status(404).json({ error: 'Not found' })
     res.json({ success: true })
   })
+})
+
+// Re-send (or send for the first time) the booking confirmation on demand —
+// used by the admin "Read-out" screen's resend button.
+app.post('/api/admin/bookings/:id/send-confirmation', requireAuth, async (req, res) => {
+  const result = await sendBookingConfirmation(db, { source: 'booking', id: req.params.id })
+  if (result.sent) db.run('UPDATE bookings SET confirmation_sent=1 WHERE id=?', [req.params.id])
+  res.json(result)
+})
+
+// Read-out view: the details a phone operator reads aloud to whoever answers.
+app.get('/api/admin/bookings/:id/readout', requireAuth, async (req, res) => {
+  try {
+    const payload = await assembleConfirmation(db, { source: 'booking', id: req.params.id })
+    res.json(payload)
+  } catch (e) {
+    res.status(422).json({ error: e.message })
+  }
 })
 
 // ── DRIVERS ───────────────────────────────────────────────────────
@@ -585,6 +640,58 @@ app.delete('/api/admin/drivers/:id', requireAuth, (req, res) => {
     if (err)           return res.status(500).json({ error: err.message })
     if (!this.changes) return res.status(404).json({ error: 'Not found' })
     res.json({ success: true })
+  })
+})
+
+// ── DRIVER PHOTO ──────────────────────────────────────────────────
+// Held in memory only long enough to validate + re-encode it — never
+// written to disk under the client's filename or MIME type.
+const photoUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+})
+
+app.post('/api/admin/drivers/:id/photo', requireAuth, photoUpload.single('photo'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No photo uploaded' })
+  // Consent is not optional decoration — refuse to save without it.
+  const consent = req.body.consent === 'true' || req.body.consent === '1' || req.body.consent === true
+  if (!consent) return res.status(400).json({ error: 'Driver consent is required before a photo can be saved' })
+
+  db.get('SELECT id, photo_path FROM drivers WHERE id=?', [req.params.id], async (err, driver) => {
+    if (err)      return res.status(500).json({ error: err.message })
+    if (!driver)  return res.status(404).json({ error: 'Driver not found' })
+
+    try {
+      const filename = await photoService.processAndSavePhoto(req.file.buffer)
+      const oldPhoto = driver.photo_path
+      db.run(
+        `UPDATE drivers SET photo_path=?, photo_uploaded_at=CURRENT_TIMESTAMP, photo_consent=1, photo_consent_at=CURRENT_TIMESTAMP WHERE id=?`,
+        [filename, req.params.id],
+        (uErr) => {
+          if (uErr) return res.status(500).json({ error: uErr.message })
+          if (oldPhoto) photoService.deletePhoto(oldPhoto)
+          res.json({ success: true, photoUploadedAt: new Date().toISOString() })
+        }
+      )
+    } catch (e) {
+      res.status(400).json({ error: e.message })
+    }
+  })
+})
+
+app.delete('/api/admin/drivers/:id/photo', requireAuth, (req, res) => {
+  db.get('SELECT photo_path FROM drivers WHERE id=?', [req.params.id], (err, driver) => {
+    if (err)      return res.status(500).json({ error: err.message })
+    if (!driver)  return res.status(404).json({ error: 'Driver not found' })
+    db.run(
+      `UPDATE drivers SET photo_path=NULL, photo_uploaded_at=NULL, photo_consent=0, photo_consent_at=NULL WHERE id=?`,
+      [req.params.id],
+      (uErr) => {
+        if (uErr) return res.status(500).json({ error: uErr.message })
+        if (driver.photo_path) photoService.deletePhoto(driver.photo_path)
+        res.json({ success: true })
+      }
+    )
   })
 })
 
@@ -728,18 +835,26 @@ app.post('/api/admin/routes', requireAuth, (req, res) => {
       `INSERT INTO routes
        (routeName,routeDate,departureTime,expectedReturnTime,
         pickupAddress,dropoffAddress,viaPoints,
-        driverId,vehicleId,bookingId,serviceType,
+        driverId,vehicleId,assistantId,bookingId,serviceType,
         passengerName,passengerCount,specialNotes,
         status,fareCharged,distanceMiles,adminNotes)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       [d.routeName,d.routeDate,d.departureTime,d.expectedReturnTime,
        d.pickupAddress,d.dropoffAddress,d.viaPoints,
-       d.driverId||null,d.vehicleId||null,d.bookingId||null,d.serviceType,
+       d.driverId||null,d.vehicleId||null,d.assistantId||null,d.bookingId||null,d.serviceType,
        d.passengerName,d.passengerCount,d.specialNotes,
        d.status||'scheduled',d.fareCharged,d.distanceMiles,d.adminNotes],
       function(err) {
         if (err) return res.status(500).json({ error: err.message })
         res.status(201).json({ id: this.lastID, success: true })
+
+        // Commissioned routes: one confirmation at route start.
+        if (d.driverId && d.vehicleId) {
+          const routeId = this.lastID
+          sendBookingConfirmation(db, { source: 'route', id: routeId }).then((result) => {
+            if (result.sent) db.run('UPDATE routes SET confirmation_sent=1 WHERE id=?', [routeId])
+          })
+        }
       }
     )
   }
@@ -753,7 +868,7 @@ app.patch('/api/admin/routes/:id', requireAuth, (req, res) => {
     routeName:d.routeName, routeDate:d.routeDate, departureTime:d.departureTime,
     expectedReturnTime:d.expectedReturnTime, pickupAddress:d.pickupAddress,
     dropoffAddress:d.dropoffAddress, viaPoints:d.viaPoints,
-    driverId:d.driverId, vehicleId:d.vehicleId, bookingId:d.bookingId,
+    driverId:d.driverId, vehicleId:d.vehicleId, assistantId:d.assistantId, bookingId:d.bookingId,
     serviceType:d.serviceType, passengerName:d.passengerName,
     passengerCount:d.passengerCount, specialNotes:d.specialNotes,
     status:d.status, actualDepartureTime:d.actualDepartureTime,
@@ -766,24 +881,61 @@ app.patch('/api/admin/routes/:id', requireAuth, (req, res) => {
   })
   if (!updates.length) return res.status(400).json({ error: 'Nothing to update' })
 
-  const applyUpdate = () => {
+  // Material-change fields that warrant a change notification if a
+  // confirmation was already sent for this route.
+  const MATERIAL_FIELDS = ['driverId', 'assistantId', 'vehicleId', 'routeDate', 'departureTime']
+
+  const applyUpdate = (existing) => {
     params.push(req.params.id)
     db.run(`UPDATE routes SET ${updates.join(',')} WHERE id=?`, params, function(err) {
       if (err)           return res.status(500).json({ error: err.message })
       if (!this.changes) return res.status(404).json({ error: 'Not found' })
       res.json({ success: true })
+
+      const driverId  = d.driverId  !== undefined ? d.driverId  : existing?.driverId
+      const vehicleId = d.vehicleId !== undefined ? d.vehicleId : existing?.vehicleId
+      if (!driverId || !vehicleId || !existing) return
+
+      const materialChange = MATERIAL_FIELDS.some(f => d[f] !== undefined && String(d[f]) !== String(existing[f]))
+
+      if (!existing.confirmation_sent) {
+        // First send, happening on a later edit rather than at creation.
+        sendBookingConfirmation(db, { source: 'route', id: req.params.id }).then((result) => {
+          if (result.sent) db.run('UPDATE routes SET confirmation_sent=1 WHERE id=?', [req.params.id])
+        })
+      } else if (materialChange) {
+        sendBookingConfirmation(db, { source: 'route', id: req.params.id })
+      }
     })
   }
 
-  if (d.driverId === undefined && d.vehicleId === undefined) return applyUpdate()
-
-  db.get('SELECT driverId, vehicleId FROM routes WHERE id=?', [req.params.id], (err, existing) => {
+  db.get('SELECT * FROM routes WHERE id=?', [req.params.id], (err, existing) => {
     if (err)       return res.status(500).json({ error: err.message })
     if (!existing) return res.status(404).json({ error: 'Not found' })
+
+    if (d.driverId === undefined && d.vehicleId === undefined) return applyUpdate(existing)
+
     const driverId  = d.driverId  !== undefined ? d.driverId  : existing.driverId
     const vehicleId = d.vehicleId !== undefined ? d.vehicleId : existing.vehicleId
-    gateAssignment(req, res, { driverId, vehicleId }, applyUpdate)
+    gateAssignment(req, res, { driverId, vehicleId }, () => applyUpdate(existing))
   })
+})
+
+// Re-send (or send for the first time) a route's confirmation on demand.
+app.post('/api/admin/routes/:id/send-confirmation', requireAuth, async (req, res) => {
+  const result = await sendBookingConfirmation(db, { source: 'route', id: req.params.id })
+  if (result.sent) db.run('UPDATE routes SET confirmation_sent=1 WHERE id=?', [req.params.id])
+  res.json(result)
+})
+
+// Read-out view: the details a phone operator reads aloud to whoever answers.
+app.get('/api/admin/routes/:id/readout', requireAuth, async (req, res) => {
+  try {
+    const payload = await assembleConfirmation(db, { source: 'route', id: req.params.id })
+    res.json(payload)
+  } catch (e) {
+    res.status(422).json({ error: e.message })
+  }
 })
 
 app.delete('/api/admin/routes/:id', requireAuth, (req, res) => {
@@ -848,13 +1000,13 @@ app.post('/api/admin/compliance/override', requireAuth, (req, res) => {
 })
 
 // Refresh MOT data for every vehicle from the DVSA MOT History API.
-// No-ops safely (200 with skipped:true) if DVSA_* env vars aren't set yet.
+// No-ops safely (200 with skipped:true) if MOT_* env vars aren't set yet.
 app.post('/api/admin/compliance/mot-sync', requireAuth, async (req, res) => {
   try {
-    const summary = await dvsaMot.syncAllVehicles(db)
+    const summary = await motService.syncAllVehicles(db)
     res.json(summary)
   } catch (err) {
-    console.error('  ◆  DVSA MOT sync failed:', err.message)
+    console.error('  ◆  MOT sync failed:', err.message)
     res.status(502).json({ error: err.message })
   }
 })
@@ -865,7 +1017,7 @@ app.post('/api/admin/vehicles/:id/mot-sync', requireAuth, (req, res) => {
     if (err)      return res.status(500).json({ error: err.message })
     if (!vehicle) return res.status(404).json({ error: 'Vehicle not found' })
     try {
-      const result = await dvsaMot.fetchMotByRegistration(vehicle.registration)
+      const result = await motService.fetchMotByRegistration(vehicle.registration)
       if (!result) return res.json({ updated: false, message: 'DVSA has no passed MOT test on record for this registration' })
       db.run(
         `UPDATE vehicles SET motExpiry=?, motSource='dvsa_api', motTestResult=?, motLastCheckedAt=CURRENT_TIMESTAMP WHERE id=?`,
@@ -879,6 +1031,31 @@ app.post('/api/admin/vehicles/:id/mot-sync', requireAuth, (req, res) => {
       res.status(502).json({ error: e.message })
     }
   })
+})
+
+// Public MOT-check widget (/verify page). Rate-limited per IP, and never
+// returns more than a minimal summary to an anonymous visitor.
+const motCheckLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, max: 10,
+  standardHeaders: true, legacyHeaders: false,
+  message: { error: 'Too many MOT checks from this address — please try again in an hour.' },
+})
+app.post('/api/public/mot-check', motCheckLimiter, async (req, res) => {
+  const registration = (req.body.registration || '').trim()
+  if (!registration || !/^[A-Za-z0-9 ]{2,10}$/.test(registration)) {
+    return res.status(400).json({ error: 'Enter a valid vehicle registration' })
+  }
+  if (!motService.isConfigured()) {
+    return res.status(503).json({ error: 'MOT lookups are not available right now — please try gov.uk/check-mot-history instead' })
+  }
+  try {
+    const summary = await motService.checkMotCached(db, registration)
+    res.json(summary)
+  } catch (err) {
+    if (err.code === 'RATE_LIMITED') return res.status(503).json({ error: 'DVSA is temporarily unavailable — please try again shortly' })
+    console.error('  ◆  Public MOT check error:', err.message)
+    res.status(502).json({ error: 'Could not check that registration right now' })
+  }
 })
 
 // Revoke an active override
@@ -939,8 +1116,8 @@ app.listen(PORT, () => {
   setTimeout(runExpiryCheck, 20 * 1000)
   setInterval(runExpiryCheck, 24 * 60 * 60 * 1000)
 
-  // DVSA MOT sync: run 40s after start (offset from the expiry check),
-  // then every 24 hours. No-ops until DVSA_* env vars are configured.
-  setTimeout(() => dvsaMot.syncAllVehicles(db), 40 * 1000)
-  setInterval(() => dvsaMot.syncAllVehicles(db), 24 * 60 * 60 * 1000)
+  // MOT sync: run 40s after start (offset from the expiry check),
+  // then every 24 hours. No-ops until MOT_* env vars are configured.
+  setTimeout(() => motService.syncAllVehicles(db), 40 * 1000)
+  setInterval(() => motService.syncAllVehicles(db), 24 * 60 * 60 * 1000)
 })

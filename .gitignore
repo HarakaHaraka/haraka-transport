@@ -4,4 +4,5 @@ backend/node_modules/
 .env
 *.sqlite
 uploads/
+backend/driver-photos/
 frontend/dist/

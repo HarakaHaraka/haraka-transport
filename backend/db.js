@@ -139,6 +139,45 @@ db.serialize(() => {
     if (!have.has('motTestResult'))    db.run(`ALTER TABLE vehicles ADD COLUMN motTestResult TEXT`)
   })
 
+  // Driver photo pipeline (Part 3). photo_consent is not decoration — the
+  // admin UI must refuse to save a photo unless it's set, since the photo
+  // is the driver's personal data held under the provider agreement.
+  db.all('PRAGMA table_info(drivers)', [], (err, cols) => {
+    if (err) return
+    const have = new Set((cols || []).map(c => c.name))
+    if (!have.has('photo_path'))        db.run(`ALTER TABLE drivers ADD COLUMN photo_path TEXT`)
+    if (!have.has('photo_uploaded_at')) db.run(`ALTER TABLE drivers ADD COLUMN photo_uploaded_at TEXT`)
+    if (!have.has('photo_consent'))     db.run(`ALTER TABLE drivers ADD COLUMN photo_consent INTEGER DEFAULT 0`)
+    if (!have.has('photo_consent_at'))  db.run(`ALTER TABLE drivers ADD COLUMN photo_consent_at TEXT`)
+  })
+
+  // 24h MOT lookup cache (Part 5) — MOT data changes at most annually,
+  // no reason to hit DVSA repeatedly for the same registration.
+  db.run(`CREATE TABLE IF NOT EXISTS mot_cache (
+    registration TEXT PRIMARY KEY,
+    motStatus    TEXT,
+    motExpiry    TEXT,
+    testDate     TEXT,
+    checkedAt    DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`)
+
+  // Booking-confirmation support (Part 4): an optional passenger assistant
+  // (recorded as a second drivers-table row) and a sent-flag so a
+  // commissioned route gets one confirmation at start plus change
+  // notifications, rather than a fresh message every daily run.
+  db.all('PRAGMA table_info(routes)', [], (err, cols) => {
+    if (err) return
+    const have = new Set((cols || []).map(c => c.name))
+    if (!have.has('assistantId'))       db.run(`ALTER TABLE routes ADD COLUMN assistantId INTEGER`)
+    if (!have.has('confirmation_sent')) db.run(`ALTER TABLE routes ADD COLUMN confirmation_sent INTEGER DEFAULT 0`)
+  })
+  db.all('PRAGMA table_info(bookings)', [], (err, cols) => {
+    if (err) return
+    const have = new Set((cols || []).map(c => c.name))
+    if (!have.has('assignedAssistantId')) db.run(`ALTER TABLE bookings ADD COLUMN assignedAssistantId INTEGER`)
+    if (!have.has('confirmation_sent'))   db.run(`ALTER TABLE bookings ADD COLUMN confirmation_sent INTEGER DEFAULT 0`)
+  })
+
   // Explicit, audited operator overrides of the compliance gate.
   // entityType/entityId is polymorphic (a driver or a vehicle) rather than
   // a single boolean flag on drivers/vehicles, so each override carries who
