@@ -95,8 +95,8 @@ export default function HomePage() {
           <div style={{ marginTop: '32px' }}>
             <p style={{ color: '#94A3B8', fontSize: '0.85rem' }}>
               Or call us 24/7: &nbsp;
-              <a href="tel:+442000000000" style={{ color: '#F59E0B', fontWeight: 700, fontSize: '1.1rem', textDecoration: 'none' }}>
-                +44 20 0000 0000
+              <a href="tel:02083144655" style={{ color: '#F59E0B', fontWeight: 700, fontSize: '1.1rem', textDecoration: 'none' }}>
+                0208 314 4655
               </a>
             </p>
           </div>
