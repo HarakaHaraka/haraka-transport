@@ -22,9 +22,8 @@ const ALLOWLIST = [
   'https://tfl.gov.uk/info-for/taxis-and-private-hire/licensing/licence-checker',
 ]
 const SECRET_NAMES = [
-  'MOT_CLIENT_SECRET', 'MOT_API_KEY', 'MOT_CLIENT_ID',
   'PHOTO_TOKEN_SECRET', 'RESEND_API_KEY', 'JWT_SECRET',
-  'TWILIO_AUTH_TOKEN', 'VONAGE_API_SECRET', 'DVSA_CLIENT_SECRET',
+  'TWILIO_AUTH_TOKEN', 'VONAGE_API_SECRET',
 ]
 
 if (!fs.existsSync(DIST)) {

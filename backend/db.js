@@ -91,9 +91,6 @@ db.serialize(() => {
     status               TEXT    DEFAULT 'active',
     assignedDriverId     INTEGER,
     notes                TEXT,
-    motSource            TEXT    DEFAULT 'manual',
-    motLastCheckedAt     DATETIME,
-    motTestResult        TEXT,
     createdAt            DATETIME DEFAULT CURRENT_TIMESTAMP
   )`)
 
@@ -129,16 +126,6 @@ db.serialize(() => {
     createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
   )`)
 
-  // Lightweight migration for DBs created before the DVSA MOT sync columns
-  // existed — CREATE TABLE IF NOT EXISTS above only applies to fresh DBs.
-  db.all('PRAGMA table_info(vehicles)', [], (err, cols) => {
-    if (err) return
-    const have = new Set((cols || []).map(c => c.name))
-    if (!have.has('motSource'))        db.run(`ALTER TABLE vehicles ADD COLUMN motSource TEXT DEFAULT 'manual'`)
-    if (!have.has('motLastCheckedAt')) db.run(`ALTER TABLE vehicles ADD COLUMN motLastCheckedAt DATETIME`)
-    if (!have.has('motTestResult'))    db.run(`ALTER TABLE vehicles ADD COLUMN motTestResult TEXT`)
-  })
-
   // Driver photo pipeline (Part 3). photo_consent is not decoration — the
   // admin UI must refuse to save a photo unless it's set, since the photo
   // is the driver's personal data held under the provider agreement.
@@ -150,16 +137,6 @@ db.serialize(() => {
     if (!have.has('photo_consent'))     db.run(`ALTER TABLE drivers ADD COLUMN photo_consent INTEGER DEFAULT 0`)
     if (!have.has('photo_consent_at'))  db.run(`ALTER TABLE drivers ADD COLUMN photo_consent_at TEXT`)
   })
-
-  // 24h MOT lookup cache (Part 5) — MOT data changes at most annually,
-  // no reason to hit DVSA repeatedly for the same registration.
-  db.run(`CREATE TABLE IF NOT EXISTS mot_cache (
-    registration TEXT PRIMARY KEY,
-    motStatus    TEXT,
-    motExpiry    TEXT,
-    testDate     TEXT,
-    checkedAt    DATETIME DEFAULT CURRENT_TIMESTAMP
-  )`)
 
   // Booking-confirmation support (Part 4): an optional passenger assistant
   // (recorded as a second drivers-table row) and a sent-flag so a

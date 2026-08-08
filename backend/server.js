@@ -10,7 +10,6 @@ const rateLimit   = require('express-rate-limit')
 const db          = require('./db')
 const { runExpiryCheck } = require('./expiryAlerts')
 const photoService = require('./photoService')
-const motService   = require('./services/motService')
 const { sendSms }  = require('./smsService')
 const { assembleConfirmation, sendBookingConfirmation } = require('./confirmationService')
 
@@ -1014,65 +1013,6 @@ app.post('/api/admin/compliance/override', requireAuth, (req, res) => {
   )
 })
 
-// Refresh MOT data for every vehicle from the DVSA MOT History API.
-// No-ops safely (200 with skipped:true) if MOT_* env vars aren't set yet.
-app.post('/api/admin/compliance/mot-sync', requireAuth, async (req, res) => {
-  try {
-    const summary = await motService.syncAllVehicles(db)
-    res.json(summary)
-  } catch (err) {
-    console.error('  ◆  MOT sync failed:', err.message)
-    res.status(502).json({ error: err.message })
-  }
-})
-
-// Refresh MOT data for a single vehicle by id
-app.post('/api/admin/vehicles/:id/mot-sync', requireAuth, (req, res) => {
-  db.get('SELECT id, registration FROM vehicles WHERE id=?', [req.params.id], async (err, vehicle) => {
-    if (err)      return res.status(500).json({ error: err.message })
-    if (!vehicle) return res.status(404).json({ error: 'Vehicle not found' })
-    try {
-      const result = await motService.fetchMotByRegistration(vehicle.registration)
-      if (!result) return res.json({ updated: false, message: 'DVSA has no passed MOT test on record for this registration' })
-      db.run(
-        `UPDATE vehicles SET motExpiry=?, motSource='dvsa_api', motTestResult=?, motLastCheckedAt=CURRENT_TIMESTAMP WHERE id=?`,
-        [result.motExpiry, result.testResult, vehicle.id],
-        (uErr) => {
-          if (uErr) return res.status(500).json({ error: uErr.message })
-          res.json({ updated: true, ...result })
-        }
-      )
-    } catch (e) {
-      res.status(502).json({ error: e.message })
-    }
-  })
-})
-
-// Public MOT-check widget (/verify page). Rate-limited per IP, and never
-// returns more than a minimal summary to an anonymous visitor.
-const motCheckLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, max: 10,
-  standardHeaders: true, legacyHeaders: false,
-  message: { error: 'Too many MOT checks from this address — please try again in an hour.' },
-})
-app.post('/api/public/mot-check', motCheckLimiter, async (req, res) => {
-  const registration = (req.body.registration || '').trim()
-  if (!registration || !/^[A-Za-z0-9 ]{2,10}$/.test(registration)) {
-    return res.status(400).json({ error: 'Enter a valid vehicle registration' })
-  }
-  if (!motService.isConfigured()) {
-    return res.status(503).json({ error: 'MOT lookups are not available right now — please try gov.uk/check-mot-history instead' })
-  }
-  try {
-    const summary = await motService.checkMotCached(db, registration)
-    res.json(summary)
-  } catch (err) {
-    if (err.code === 'RATE_LIMITED') return res.status(503).json({ error: 'DVSA is temporarily unavailable — please try again shortly' })
-    console.error('  ◆  Public MOT check error:', err.message)
-    res.status(502).json({ error: 'Could not check that registration right now' })
-  }
-})
-
 // Revoke an active override
 app.delete('/api/admin/compliance/override/:id', requireAuth, (req, res) => {
   db.run(
@@ -1130,9 +1070,4 @@ app.listen(PORT, () => {
   // Document-expiry check: run 20s after start, then every 24 hours.
   setTimeout(runExpiryCheck, 20 * 1000)
   setInterval(runExpiryCheck, 24 * 60 * 60 * 1000)
-
-  // MOT sync: run 40s after start (offset from the expiry check),
-  // then every 24 hours. No-ops until MOT_* env vars are configured.
-  setTimeout(() => motService.syncAllVehicles(db), 40 * 1000)
-  setInterval(() => motService.syncAllVehicles(db), 24 * 60 * 60 * 1000)
 })

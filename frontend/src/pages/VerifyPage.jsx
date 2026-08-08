@@ -1,6 +1,5 @@
 import { COMPANY } from '../config/company'
 import { PolicyPage, PolicySection, Prose } from '../components/PolicyPage'
-import MotCheckWidget from '../components/MotCheckWidget'
 
 export default function VerifyPage() {
   return (
@@ -36,17 +35,18 @@ export default function VerifyPage() {
             </a>
           </div>
 
-          <MotCheckWidget />
+          <div className="glass-card" style={{ padding: '24px' }}>
+            <p style={{ fontSize: '0.65rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#A855F7', marginBottom: '10px', fontWeight: 700 }}>
+              Check a vehicle's MOT
+            </p>
+            <Prose text="Use the vehicle registration mark from your booking confirmation on the official government MOT history check." />
+            <a href="https://www.gov.uk/check-mot-history"
+               target="_blank" rel="noopener noreferrer" className="btn-outline"
+               style={{ display: 'inline-block', marginTop: '10px', textDecoration: 'none', textAlign: 'center' }}>
+              Check MOT history →
+            </a>
+          </div>
         </div>
-      </PolicySection>
-
-      <PolicySection>
-        <p style={{ color: '#CBD5E1', fontSize: '0.9rem' }}>
-          Prefer to look it up yourself in full? The official government MOT history check is at{' '}
-          <a href="https://www.gov.uk/check-mot-history" target="_blank" rel="noopener noreferrer" style={{ color: '#A855F7' }}>
-            gov.uk/check-mot-history
-          </a>.
-        </p>
       </PolicySection>
 
       <PolicySection>
