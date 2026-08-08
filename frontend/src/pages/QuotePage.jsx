@@ -2,11 +2,9 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 // ── API base URL ──────────────────────────────────────────────
-// This is the fix for the "couldn't fetch/submit" error.
-// The live site (Netlify) must call the Render backend by its full URL.
-// This is hardcoded so it works with no Netlify environment variable needed.
-// IMPORTANT: this must match the URL your working Book With Us form uses.
-const API = 'https://haraka-transport.onrender.com'
+// Matches ContactPage.jsx and JoinUsPage.jsx — the custom domain, not the
+// raw Render subdomain, so all three forms hit the same origin.
+const API = 'https://harakatransport.co.uk'
 
 export default function QuotePage() {
   const navigate = useNavigate()
