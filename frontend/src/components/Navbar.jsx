@@ -23,7 +23,7 @@ export default function Navbar() {
       }
     } else {
       navigate(path)
-      window.scrollTo({ top: 0, behavior: 'smooth' })
+      // Scroll reset now handled globally by <ScrollToTop /> on every route change.
     }
   }
 
