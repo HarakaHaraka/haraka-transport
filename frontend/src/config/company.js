@@ -18,11 +18,16 @@ export const COMPANY = {
   operatorLicenceNumber: null,
   operatorLicencePendingText:
     'Haraka Transport Limited has applied for a private hire vehicle operator’s licence from Transport for London. Our licence number will be published here as soon as it is issued. We do not accept bookings until our licence is granted.',
+  // Insurer and cover limits not yet confirmed. Leave these null and the
+  // public Terms page renders insurancePendingText instead of a specific
+  // claim. Set all three together once the policy schedule is in hand.
   insurance: {
-    insurer: 'AXA',
-    publicLiability: '£5,000,000',
-    employersLiability: '£10,000,000',
+    insurer: null,
+    publicLiability: null,
+    employersLiability: null,
   },
+  insurancePendingText:
+    'Our insurance details will be published here once confirmed.',
   // No VAT registration. Do NOT render a VAT line at all. Do not print
   // "not VAT registered" anywhere.
   vatNumber: null,
