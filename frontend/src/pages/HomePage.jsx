@@ -9,6 +9,7 @@ import { COMPANY } from '../config/company'
 import imgSen       from '../assets/hero-sen.webp'
 import imgChauffeur from '../assets/hero-events.webp'
 import imgWedding   from '../assets/hero-events-weddings.webp'
+import imgAirport   from '../assets/hero-airport.webp'
 import imgLondon    from '../assets/hero-london.webp'
 import imgNight     from '../assets/hero-night.webp'
 
@@ -57,8 +58,8 @@ const JOURNEYS = [
   {
     label: 'Airport',
     caption: 'Met at arrivals, on time',
-    img: imgLondon,
-    alt: 'St Paul’s Cathedral seen between glass office buildings',
+    img: imgAirport,
+    alt: 'Black Mercedes saloon waiting at an airport terminal pick-up point',
     title: 'Airport transfer',
     note: 'Heathrow, Gatwick, City, Luton and Stansted, with flight tracking and meet and greet.',
     toLabel: 'Airport', toHint: 'e.g. Heathrow T5',
@@ -94,13 +95,13 @@ const SERVICES = [
     service: 'Events & Weddings',
   },
   {
-    Icon: Plane, title: 'Airport Transfers', tag: '', img: imgLondon,
+    Icon: Plane, title: 'Airport Transfers', tag: '', img: imgAirport,
     desc: 'All major London airports including Heathrow, Gatwick, City, Luton and Stansted. Flight tracking, meet and greet.',
     points: ['Flight tracking', 'Meet and greet', 'All London airports'],
     service: 'Airport Transfer',
   },
   {
-    Icon: Building2, title: 'Corporate Accounts', tag: 'Business', img: imgChauffeur,
+    Icon: Building2, title: 'Corporate Accounts', tag: 'Business', img: imgLondon,
     desc: 'Dedicated account management, monthly invoicing and priority booking for corporate clients and roadshows.',
     points: ['Monthly invoicing', 'Account manager', 'Priority booking'],
     service: 'Corporate Travel',
