@@ -1,17 +1,48 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
+import { COMPANY } from '../config/company'
+import PageHead from '../components/PageHead'
+import CallUs from '../components/CallUs'
 
 // ── API base URL ──────────────────────────────────────────────
 // Matches ContactPage.jsx and JoinUsPage.jsx — the custom domain, not the
 // raw Render subdomain, so all three forms hit the same origin.
 const API = 'https://harakatransport.co.uk'
 
+const SERVICE_OPTIONS = ['', 'Airport transfer', 'Wedding / event', 'Group travel', 'SEN transport', 'Corporate / concierge', 'Other']
+
+// The homepage and Booking page name services slightly differently from
+// this form. Translate, so a visitor arriving from the homepage finds the
+// right option already chosen.
+const SERVICE_FROM_HOMEPAGE = {
+  'SEN / Care Transport':  'SEN transport',
+  'Airport Transfer':      'Airport transfer',
+  'Events & Weddings':     'Wedding / event',
+  'Corporate Travel':      'Corporate / concierge',
+  'Hourly / As-Directed':  'Corporate / concierge',
+  'City / Point-to-Point': 'Other',
+}
+
 export default function QuotePage() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const [searchParams] = useSearchParams()
+
+  // Anything typed into the homepage booking panel arrives in router state.
+  const prefill = location.state?.prefill || {}
+  const incomingService = prefill.serviceType || searchParams.get('service') || ''
+  const startService = SERVICE_OPTIONS.includes(incomingService)
+    ? incomingService
+    : (SERVICE_FROM_HOMEPAGE[incomingService] || '')
+
   const [form, setForm] = useState({
     firstName: '', lastName: '', email: '', phone: '',
-    serviceType: '', pickupAddress: '', dropoffAddress: '',
-    pickupDate: '', pickupTime: '', passengers: '', notes: '',
+    serviceType: startService,
+    pickupAddress: prefill.pickupAddress || '',
+    dropoffAddress: prefill.dropoffAddress || '',
+    pickupDate: prefill.pickupDate || '',
+    pickupTime: '', passengers: '',
+    notes: prefill.notes || '',
   })
   const [status, setStatus] = useState('idle') // idle | sending | ok | error
   const [errorMsg, setErrorMsg] = useState('')
@@ -44,96 +75,80 @@ export default function QuotePage() {
     } catch (err) {
       console.error('Quote submit failed:', err)
       setStatus('error')
-      setErrorMsg('Sorry, we couldn\u2019t submit your quote right now. Please try again, or call us on 07849 549740.')
+      setErrorMsg(`Sorry, we couldn’t submit your quote right now. Please try again, or call us on ${COMPANY.phone}.`)
     }
   }
 
   return (
-    <div style={page}>
-      <div style={card}>
-        <h1 style={{ color: 'white', fontSize: '1.8rem', marginBottom: '6px' }}>Quick Quote</h1>
-        <p style={{ color: '#94a3b8', marginBottom: '24px', fontSize: '0.95rem' }}>
-          Tell us about your journey and we\u2019ll get back to you with a price. All bookings are pre-arranged.
-        </p>
+    <main className="hk-page">
+      <PageHead
+        label="Quick quote"
+        title="Get a price for your journey"
+        intro="Tell us about your journey and we’ll get back to you with a price. All bookings are pre-arranged."
+      />
 
-        <div style={grid}>
-          <Field label="First name*" name="firstName" value={form.firstName} onChange={update} />
-          <Field label="Last name*"  name="lastName"  value={form.lastName}  onChange={update} />
-          <Field label="Email*"      name="email"     value={form.email}     onChange={update} type="email" />
-          <Field label="Phone*"      name="phone"     value={form.phone}     onChange={update} type="tel" />
-        </div>
-
-        <Select label="Service type" name="serviceType" value={form.serviceType} onChange={update}
-          options={['', 'Airport transfer', 'Wedding / event', 'Group travel', 'SEN transport', 'Corporate / concierge', 'Other']} />
-
-        <div style={grid}>
-          <Field label="Pick-up address"  name="pickupAddress"  value={form.pickupAddress}  onChange={update} />
-          <Field label="Drop-off address" name="dropoffAddress" value={form.dropoffAddress} onChange={update} />
-          <Field label="Date"  name="pickupDate" value={form.pickupDate} onChange={update} type="date" />
-          <Field label="Time"  name="pickupTime" value={form.pickupTime} onChange={update} type="time" />
-          <Field label="Passengers" name="passengers" value={form.passengers} onChange={update} type="number" />
-        </div>
-
-        <label style={lbl}>Notes / special requirements</label>
-        <textarea name="notes" value={form.notes} onChange={update} rows={3} style={{ ...input, resize: 'vertical' }} />
-
-        {status === 'error' && (
-          <div style={{ color: '#fca5a5', marginTop: '14px', fontSize: '0.9rem' }}>{errorMsg}</div>
-        )}
-        {status === 'ok' && (
-          <div style={{ color: '#86efac', marginTop: '14px', fontSize: '0.9rem' }}>
-            Thank you — your quote request has been received. We\u2019ll be in touch shortly.
+      <div className="hk-body hk-split">
+        <div className="hk-form">
+          <div className="hk-form__row">
+            <Field label="First name *" name="firstName" value={form.firstName} onChange={update} autoComplete="given-name" />
+            <Field label="Last name *"  name="lastName"  value={form.lastName}  onChange={update} autoComplete="family-name" />
           </div>
-        )}
+          <div className="hk-form__row">
+            <Field label="Email *" name="email" value={form.email} onChange={update} type="email" autoComplete="email" />
+            <Field label="Phone *" name="phone" value={form.phone} onChange={update} type="tel" autoComplete="tel" />
+          </div>
 
-        <button onClick={submit} disabled={status === 'sending'} style={{ ...submitBtn, opacity: status === 'sending' ? 0.6 : 1 }}>
-          {status === 'sending' ? 'Sending…' : 'Request Quote'}
-        </button>
+          <div className="hk-fieldset">
+            <label className="hk-label" htmlFor="qt-serviceType">Service type</label>
+            <select id="qt-serviceType" className="hk-input" name="serviceType" value={form.serviceType} onChange={update}>
+              {SERVICE_OPTIONS.map((o) => <option key={o} value={o}>{o || 'Select…'}</option>)}
+            </select>
+          </div>
+
+          <div className="hk-form__row">
+            <Field label="Pick-up address"  name="pickupAddress"  value={form.pickupAddress}  onChange={update} />
+            <Field label="Drop-off address" name="dropoffAddress" value={form.dropoffAddress} onChange={update} />
+          </div>
+          <div className="hk-form__row">
+            <Field label="Date" name="pickupDate" value={form.pickupDate} onChange={update} type="date" />
+            <Field label="Time" name="pickupTime" value={form.pickupTime} onChange={update} type="time" />
+            <Field label="Passengers" name="passengers" value={form.passengers} onChange={update} type="number" min="1" />
+          </div>
+
+          <div className="hk-fieldset">
+            <label className="hk-label" htmlFor="qt-notes">Notes / special requirements</label>
+            <textarea id="qt-notes" className="hk-input" name="notes" value={form.notes} onChange={update} rows={3} />
+          </div>
+
+          {status === 'error' && <div className="hk-alert" role="alert">{errorMsg}</div>}
+          {status === 'ok' && (
+            <div className="hk-note">
+              Thank you — your quote request has been received. We’ll be in touch shortly.
+            </div>
+          )}
+
+          <button
+            type="button"
+            className="hk-btn hk-btn--primary hk-btn--lg hk-btn--block"
+            onClick={submit}
+            disabled={status === 'sending'}
+          >
+            {status === 'sending' ? 'Sending…' : 'Request quote'}
+          </button>
+        </div>
+
+        <CallUs />
       </div>
-    </div>
+    </main>
   )
 }
 
 function Field({ label, ...props }) {
   const id = `qt-${props.name}`
   return (
-    <div style={{ display: 'flex', flexDirection: 'column' }}>
-      <label style={lbl} htmlFor={id}>{label}</label>
-      <input id={id} {...props} style={input} />
+    <div className="hk-fieldset">
+      <label className="hk-label" htmlFor={id}>{label}</label>
+      <input id={id} className="hk-input" {...props} />
     </div>
   )
-}
-
-function Select({ label, options, ...props }) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', margin: '4px 0 12px' }}>
-      <label style={lbl}>{label}</label>
-      <select {...props} style={input}>
-        {options.map((o) => <option key={o} value={o}>{o || 'Select…'}</option>)}
-      </select>
-    </div>
-  )
-}
-
-const page = {
-  minHeight: '100vh', paddingTop: '100px', paddingBottom: '60px',
-  background: 'radial-gradient(circle at 20% 10%, #1a1030, #0b0f1e 60%)',
-  display: 'flex', justifyContent: 'center', alignItems: 'flex-start',
-}
-const card = {
-  width: '100%', maxWidth: '640px', margin: '0 20px',
-  background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(168,85,247,0.18)',
-  borderRadius: '16px', padding: '32px',
-}
-const grid = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: '12px', marginBottom: '4px' }
-const lbl = { color: '#cbd5e1', fontSize: '0.78rem', marginBottom: '4px' }
-const input = {
-  padding: '11px 12px', borderRadius: '9px',
-  background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(168,85,247,0.2)',
-  color: 'white', fontSize: '0.95rem', outline: 'none', width: '100%', boxSizing: 'border-box',
-}
-const submitBtn = {
-  marginTop: '22px', width: '100%', padding: '14px',
-  background: 'linear-gradient(135deg,#8b2f8b,#a855f7)', border: 'none',
-  borderRadius: '10px', color: 'white', fontWeight: 700, fontSize: '1rem', cursor: 'pointer',
 }

@@ -1,23 +1,19 @@
 import { useState, useRef, cloneElement } from 'react'
 import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
+import { ArrowDown, ArrowRight, Baby, Car, Check, HeartHandshake } from 'lucide-react'
+import { COMPANY } from '../config/company'
+import PageHead from '../components/PageHead'
 
 const API = 'https://harakatransport.co.uk'
-
-const inp = {
-  width: '100%', background: 'rgba(255,255,255,0.06)',
-  border: '1px solid rgba(168,85,247,0.3)', color: 'white',
-  padding: '13px 16px', borderRadius: '8px', fontSize: '0.9rem',
-  outline: 'none', fontFamily: 'inherit',
-}
 
 function Field({ label, error, children, required }) {
   const id = `ju-${label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')}`
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-      <label className="field-label" htmlFor={id}>{label}{required && ' *'}</label>
-      {cloneElement(children, { id })}
-      {error && <p className="field-error">{error}</p>}
+    <div className="hk-fieldset">
+      <label className="hk-label" htmlFor={id}>{label}{required && ' *'}</label>
+      {cloneElement(children, { id, className: 'hk-input', 'aria-invalid': !!error })}
+      {error && <p className="hk-error">{error}</p>}
     </div>
   )
 }
@@ -26,8 +22,7 @@ const ROLES = [
   {
     id: 'pco-driver',
     title: 'PCO Licensed Driver',
-    icon: '🚗',
-    colour: '#A855F7',
+    Icon: Car,
     desc: 'Executive and private hire driving across London. Flexible hours, competitive rates.',
     requirements: [
       'Valid TFL PCO Driver Licence',
@@ -41,8 +36,7 @@ const ROLES = [
   {
     id: 'sen-driver',
     title: 'SEN Transport & School Run Driver',
-    icon: '🧒',
-    colour: '#F59E0B',
+    Icon: Baby,
     desc: 'Specialist school run and care transport for children and adults with Special Educational Needs.',
     requirements: [
       'Valid TFL PCO Driver Licence',
@@ -57,8 +51,7 @@ const ROLES = [
   {
     id: 'passenger-assistant',
     title: 'Passenger Assistant',
-    icon: '🤝',
-    colour: '#22C55E',
+    Icon: HeartHandshake,
     desc: 'Support SEN children and adults during transport. Work alongside our drivers on school run routes.',
     requirements: [
       'Enhanced DBS on DBS Update Service',
@@ -124,136 +117,107 @@ export default function JoinUsPage() {
       if (!res.ok) throw new Error()
       setSubmitted(true)
     } catch {
-      setError('Could not submit. Please email your application to [INSERT RECRUITMENT EMAIL]')
+      setError(`Could not submit. Please email your application to ${COMPANY.email}`)
     } finally {
       setSubmitting(false)
     }
   }
 
   if (submitted) return (
-    <div style={{ minHeight:'100vh', background:'#0F0A1E', display:'flex', alignItems:'center', justifyContent:'center', padding:'40px 20px', paddingTop:'90px' }}>
-      <div style={{ maxWidth:'480px', width:'100%', textAlign:'center' }}>
-        <div style={{ width:'70px', height:'70px', borderRadius:'50%', background:'linear-gradient(135deg,#6B21A8,#A855F7)', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 20px', fontSize:'2rem' }}>✓</div>
-        <span className="badge badge-purple" style={{ marginBottom:'14px', display:'inline-block' }}>Application Received</span>
-        <h1 style={{ fontSize:'clamp(1.6rem,5vw,2.4rem)', fontWeight:900, color:'white', marginBottom:'12px' }}>Thank You!</h1>
-        <p style={{ color:'#94A3B8', lineHeight:1.8, marginBottom:'28px', fontSize:'0.95rem' }}>
+    <main className="hk-page">
+      <div className="hk-done">
+        <div className="hk-done__mark" aria-hidden="true"><Check size={30} strokeWidth={2.5} /></div>
+        <p className="hk-kicker">Application received</p>
+        <h1 className="hk-pagehead__title">Thank you.</h1>
+        <p className="hk-pagehead__intro">
           Your application has been received. We will be in touch within 5 working days.
         </p>
-        <button className="btn-primary" onClick={() => navigate('/')}>Back to Homepage</button>
+        <button type="button" className="hk-btn hk-btn--primary hk-btn--lg" onClick={() => navigate('/')}>
+          Back to homepage
+        </button>
       </div>
-    </div>
+    </main>
   )
 
   return (
-    <div style={{ background:'#0F0A1E', minHeight:'100vh', paddingTop:'80px', paddingBottom:'60px' }}>
-      <div style={{ maxWidth:'900px', margin:'0 auto', padding:'0 16px' }}>
+    <main className="hk-page">
+      <PageHead
+        label="We are hiring"
+        title={`Join ${COMPANY.tradingNames[0]}`}
+        intro="Select a role below, then complete the application form."
+      />
 
-        {/* Header */}
-        <div style={{ textAlign:'center', marginBottom:'32px', padding:'0 8px' }}>
-          <span className="badge badge-gold" style={{ marginBottom:'12px', display:'inline-block' }}>We Are Hiring</span>
-          <h1 style={{ fontSize:'clamp(1.8rem,6vw,3rem)', fontWeight:900, color:'white', marginBottom:'10px', lineHeight:1.15 }}>
-            Join Haraka Transport
-          </h1>
-          <p style={{ color:'#94A3B8', fontSize:'clamp(0.85rem,2.5vw,1rem)', maxWidth:'500px', margin:'0 auto', lineHeight:1.7 }}>
-            Select a role below then complete the application form.
-          </p>
-        </div>
+      <div className="hk-body">
 
         {/* Role cards */}
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(260px,1fr))', gap:'14px', marginBottom:'32px' }}>
-          {ROLES.map(role => (
-            <div key={role.id}
-              style={{
-                border:`2px solid ${selectedRole===role.id ? role.colour : 'rgba(168,85,247,0.2)'}`,
-                borderRadius:'16px', background: selectedRole===role.id
-                  ? `rgba(${role.colour==='#A855F7'?'168,85,247':role.colour==='#F59E0B'?'245,158,11':'34,197,94'},0.1)`
-                  : 'rgba(26,16,51,0.7)',
-                overflow:'hidden', transition:'all 0.3s ease',
-              }}>
-              {/* Card top */}
-              <div style={{ padding:'22px 20px 16px' }}>
-                <div style={{ fontSize:'2.4rem', marginBottom:'10px' }}>{role.icon}</div>
-                <h3 style={{ fontSize:'clamp(0.95rem,2.5vw,1.1rem)', fontWeight:800, color:'white', marginBottom:'8px', lineHeight:1.3 }}>
-                  {role.title}
-                </h3>
-                <p style={{ fontSize:'0.82rem', color:'#94A3B8', lineHeight:1.6, marginBottom:'14px' }}>
-                  {role.desc}
-                </p>
-
-                {/* Requirements */}
-                <div style={{ marginBottom:'16px' }}>
-                  {role.requirements.map((r, i) => (
-                    <div key={i} style={{ display:'flex', gap:'8px', marginBottom:'5px', alignItems:'flex-start' }}>
-                      <span style={{ color:role.colour, flexShrink:0, fontSize:'0.85rem', marginTop:'1px' }}>✓</span>
-                      <span style={{ fontSize:'0.78rem', color:'#94A3B8', lineHeight:1.5 }}>{r}</span>
-                    </div>
-                  ))}
+        <div className="hk-cards" style={{ marginBottom: '40px' }}>
+          {ROLES.map(role => {
+            const on = selectedRole === role.id
+            return (
+              <div key={role.id} className={`hk-cell hk-card hk-role${on ? ' is-on' : ''}`}>
+                <div className="hk-role__body">
+                  <role.Icon className="hk-card__icon" size={28} strokeWidth={2} aria-hidden="true" />
+                  <h2 className="hk-card__title">{role.title}</h2>
+                  <p>{role.desc}</p>
+                  <ul className="hk-role__reqs">
+                    {role.requirements.map((r, i) => (
+                      <li key={i}>
+                        <Check size={14} strokeWidth={2.5} aria-hidden="true" />
+                        {r}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
+                <button
+                  type="button"
+                  className="hk-role__pick"
+                  aria-pressed={on}
+                  onClick={() => selectRole(role.id)}
+                >
+                  {on ? 'Selected — fill in the form below' : 'Apply for this role'}
+                  {on
+                    ? <ArrowDown size={18} strokeWidth={2} aria-hidden="true" />
+                    : <ArrowRight size={18} strokeWidth={2} aria-hidden="true" />}
+                </button>
               </div>
-
-              {/* Apply button — large and clear */}
-              <button
-                onClick={() => selectRole(role.id)}
-                style={{
-                  width:'100%', padding:'16px',
-                  background: selectedRole===role.id
-                    ? `linear-gradient(135deg, ${role.colour}, ${role.colour}dd)`
-                    : 'rgba(255,255,255,0.06)',
-                  border:'none', cursor:'pointer',
-                  color: selectedRole===role.id ? (role.colour==='#F59E0B'?'#0F0A1E':'white') : role.colour,
-                  fontSize:'0.95rem', fontWeight:800,
-                  letterSpacing:'0.04em',
-                  borderTop:`1px solid ${role.colour}33`,
-                  transition:'all 0.3s ease',
-                  display:'flex', alignItems:'center', justifyContent:'center', gap:'8px',
-                }}>
-                {selectedRole===role.id
-                  ? '✓ Selected — Fill Form Below ↓'
-                  : `Apply for This Role →`}
-              </button>
-            </div>
-          ))}
+            )
+          })}
         </div>
 
         {/* Application form */}
-        <div ref={formRef} className="glass-card" style={{ padding:'clamp(20px,5vw,36px)', scrollMarginTop:'90px' }}>
-          <div style={{ marginBottom:'24px', paddingBottom:'16px', borderBottom:'1px solid rgba(168,85,247,0.15)' }}>
-            <h2 style={{ fontSize:'clamp(1.1rem,3vw,1.4rem)', fontWeight:800, color:'white', marginBottom:'6px' }}>
-              Application Form
-            </h2>
-            <p style={{ color:'#94A3B8', fontSize:'0.85rem' }}>
+        <div ref={formRef} style={{ maxWidth: '760px', scrollMarginTop: '96px' }}>
+          <form className="hk-form" onSubmit={handleSubmit(onSubmit)} noValidate>
+            <h2 className="hk-form__title">Application form</h2>
+            <p className="hk-form__sub">
               {selectedRole
                 ? `Applying for: ${ROLES.find(r=>r.id===selectedRole)?.title}`
-                : '⬆ Select a role above to apply'}
+                : 'Select a role above to apply'}
             </p>
-          </div>
-
-          <form onSubmit={handleSubmit(onSubmit)} style={{ display:'flex', flexDirection:'column', gap:'16px' }}>
 
             {/* Personal details */}
-            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(140px,1fr))', gap:'14px' }}>
+            <div className="hk-form__row">
               <Field label="First Name" required error={errors.firstName?.message}>
-                <input {...register('firstName',{required:'Required'})} style={inp} placeholder="First name" />
+                <input {...register('firstName',{required:'Required'})} placeholder="First name" />
               </Field>
               <Field label="Last Name" required error={errors.lastName?.message}>
-                <input {...register('lastName',{required:'Required'})} style={inp} placeholder="Last name" />
+                <input {...register('lastName',{required:'Required'})} placeholder="Last name" />
               </Field>
             </div>
 
             <Field label="Email Address" required error={errors.email?.message}>
-              <input {...register('email',{required:'Required',pattern:{value:/\S+@\S+\.\S+/,message:'Invalid email'}})} type="email" style={inp} placeholder="your@email.com" />
+              <input {...register('email',{required:'Required',pattern:{value:/\S+@\S+\.\S+/,message:'Invalid email'}})} type="email" placeholder="your@email.com" />
             </Field>
 
             <Field label="Phone Number" required error={errors.phone?.message}>
-              <input {...register('phone',{required:'Required'})} type="tel" style={inp} placeholder="+44 7700 000000" />
+              <input {...register('phone',{required:'Required'})} type="tel" placeholder="+44 7700 000000" />
             </Field>
 
             <Field label="Full Address" required error={errors.address?.message}>
-              <input {...register('address',{required:'Required'})} style={inp} placeholder="Full address including postcode" />
+              <input {...register('address',{required:'Required'})} placeholder="Full address including postcode" />
             </Field>
 
             <Field label="Right to Work in UK" required error={errors.rightToWork?.message}>
-              <select {...register('rightToWork',{required:'Required'})} style={inp}>
+              <select {...register('rightToWork',{required:'Required'})}>
                 <option value="">— Select —</option>
                 <option>British Citizen / Indefinite Leave to Remain</option>
                 <option>EU Settled Status</option>
@@ -266,14 +230,14 @@ export default function JoinUsPage() {
             {(selectedRole==='pco-driver'||selectedRole==='sen-driver') && (
               <>
                 <Field label="TFL PCO Driver Licence Number" required error={errors.pcoLicence?.message}>
-                  <input {...register('pcoLicence',{required:'Required for this role'})} style={inp} placeholder="e.g. 123456789" />
+                  <input {...register('pcoLicence',{required:'Required for this role'})} placeholder="e.g. 123456789" />
                 </Field>
-                <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(140px,1fr))', gap:'14px' }}>
+                <div className="hk-form__row">
                   <Field label="DVLA Licence Number" required error={errors.dvlaLicence?.message}>
-                    <input {...register('dvlaLicence',{required:'Required'})} style={inp} placeholder="e.g. SMITH901234AB" />
+                    <input {...register('dvlaLicence',{required:'Required'})} placeholder="e.g. SMITH901234AB" />
                   </Field>
                   <Field label="Penalty Points">
-                    <select {...register('dvlaPoints')} style={inp}>
+                    <select {...register('dvlaPoints')}>
                       <option value="0">0 points</option>
                       <option value="1-3">1-3 points</option>
                       <option value="4-6">4-6 points</option>
@@ -287,12 +251,12 @@ export default function JoinUsPage() {
             {/* SEN/PA fields */}
             {(selectedRole==='sen-driver'||selectedRole==='passenger-assistant') && (
               <>
-                <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(140px,1fr))', gap:'14px' }}>
+                <div className="hk-form__row">
                   <Field label="DBS Certificate Number">
-                    <input {...register('dbsNumber')} style={inp} placeholder="Leave blank if not held" />
+                    <input {...register('dbsNumber')} placeholder="Leave blank if not held" />
                   </Field>
                   <Field label="DBS Update Service">
-                    <select {...register('dbsUpdateService')} style={inp}>
+                    <select {...register('dbsUpdateService')}>
                       <option value="">— Select —</option>
                       <option>Yes — registered</option>
                       <option>No — willing to register</option>
@@ -301,7 +265,7 @@ export default function JoinUsPage() {
                   </Field>
                 </div>
                 <Field label="Safeguarding Training">
-                  <select {...register('safeguardingTraining')} style={inp}>
+                  <select {...register('safeguardingTraining')}>
                     <option value="">— Select —</option>
                     <option>Level 1 — completed</option>
                     <option>Level 2 — completed</option>
@@ -309,7 +273,7 @@ export default function JoinUsPage() {
                   </select>
                 </Field>
                 <Field label="First Aid Certificate">
-                  <select {...register('firstAid')} style={inp}>
+                  <select {...register('firstAid')}>
                     <option value="">— Select —</option>
                     <option>Paediatric First Aid — valid</option>
                     <option>Emergency First Aid — valid</option>
@@ -318,7 +282,7 @@ export default function JoinUsPage() {
                   </select>
                 </Field>
                 <Field label="SEN Experience">
-                  <textarea {...register('senExperience')} style={{...inp,minHeight:'80px',resize:'vertical'}}
+                  <textarea {...register('senExperience')} rows={3}
                     placeholder="Describe any experience with SEN children or adults…" />
                 </Field>
               </>
@@ -326,9 +290,9 @@ export default function JoinUsPage() {
 
             {/* PA specific */}
             {selectedRole==='passenger-assistant' && (
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(140px,1fr))', gap:'14px' }}>
+              <div className="hk-form__row">
                 <Field label="Moving & Handling Training">
-                  <select {...register('movingHandling')} style={inp}>
+                  <select {...register('movingHandling')}>
                     <option value="">— Select —</option>
                     <option>Completed — valid</option>
                     <option>Expired — willing to renew</option>
@@ -336,7 +300,7 @@ export default function JoinUsPage() {
                   </select>
                 </Field>
                 <Field label="Autism Awareness">
-                  <select {...register('autismAwareness')} style={inp}>
+                  <select {...register('autismAwareness')}>
                     <option value="">— Select —</option>
                     <option>Completed</option>
                     <option>Willing to complete</option>
@@ -346,9 +310,9 @@ export default function JoinUsPage() {
             )}
 
             {/* Common fields */}
-            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(140px,1fr))', gap:'14px' }}>
+            <div className="hk-form__row">
               <Field label="Employment Status">
-                <select {...register('employmentStatus')} style={inp}>
+                <select {...register('employmentStatus')}>
                   <option value="">— Select —</option>
                   <option>Employed full time</option>
                   <option>Employed part time</option>
@@ -357,7 +321,7 @@ export default function JoinUsPage() {
                 </select>
               </Field>
               <Field label="Availability">
-                <select {...register('availability')} style={inp}>
+                <select {...register('availability')}>
                   <option value="">— Select —</option>
                   <option>Full time — any days</option>
                   <option>Part time — weekdays</option>
@@ -368,7 +332,7 @@ export default function JoinUsPage() {
             </div>
 
             <Field label="How Did You Hear About Us?">
-              <select {...register('referralSource')} style={inp}>
+              <select {...register('referralSource')}>
                 <option value="">— Select —</option>
                 <option>Indeed / Job board</option>
                 <option>Google Search</option>
@@ -380,15 +344,16 @@ export default function JoinUsPage() {
             </Field>
 
             <Field label="Additional Information">
-              <textarea {...register('additionalInfo')} style={{...inp,minHeight:'90px',resize:'vertical'}}
+              <textarea {...register('additionalInfo')} rows={4}
                 placeholder="Tell us anything else relevant to your application…" />
             </Field>
 
             {/* Document uploads */}
-            <div style={{ borderTop:'1px solid rgba(168,85,247,0.15)', paddingTop:'20px' }}>
-              <p style={{ fontSize:'0.9rem', fontWeight:700, color:'white', marginBottom:'6px' }}>Document Uploads</p>
-              <p style={{ fontSize:'0.78rem', color:'#94A3B8', marginBottom:'16px', lineHeight:1.6 }}>
-                PDF and Word (.docx) only · Max 5MB per file
+            <hr className="hk-form__rule" />
+            <div>
+              <h3 className="hk-form__title">Document uploads</h3>
+              <p className="hk-small" style={{ marginBottom: '16px' }}>
+                PDF and Word (.docx) only. Maximum 5MB per file.
               </p>
 
               {[
@@ -402,58 +367,52 @@ export default function JoinUsPage() {
                 {name:'movingHandlingFile',label:'Moving & Handling Certificate', required:false},
                 {name:'otherDocFile',     label:'Any Other Document',            required:false},
               ].map(({name,label,required}) => (
-                <div key={name} style={{ marginBottom:'12px' }}>
-                  <label className="field-label">{label}{required?' *':' (optional)'}</label>
+                <div key={name} className="hk-fieldset" style={{ marginBottom: '12px' }}>
+                  <label className="hk-label" htmlFor={`ju-file-${name}`}>{label}{required?' *':' (optional)'}</label>
                   <input type="file"
+                    id={`ju-file-${name}`}
+                    className="hk-input"
                     accept=".pdf,.doc,.docx"
                     onChange={e => handleFileChange(name, e.target.files[0])}
-                    style={{ width:'100%', background:'rgba(255,255,255,0.06)', border:'1px solid rgba(168,85,247,0.3)', color:'white', padding:'10px 14px', borderRadius:'8px', fontSize:'0.85rem', cursor:'pointer' }}
                   />
-                  {fileErrors[name] && <p className="field-error">{fileErrors[name]}</p>}
+                  {fileErrors[name] && <p className="hk-error">{fileErrors[name]}</p>}
                   {uploadedFiles[name] && (
-                    <p style={{ fontSize:'0.75rem', color:'#22C55E', marginTop:'4px' }}>✓ {uploadedFiles[name].name}</p>
+                    <p className="hk-ok">Attached: {uploadedFiles[name].name}</p>
                   )}
                 </div>
               ))}
             </div>
 
             {/* Declaration */}
-            <div style={{ background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:'8px', padding:'14px' }}>
-              <label style={{ display:'flex', gap:'10px', alignItems:'flex-start', cursor:'pointer' }}>
-                <input type="checkbox" {...register('declaration',{required:'You must confirm this declaration'})} style={{ marginTop:'3px', flexShrink:0 }} />
-                <span style={{ fontSize:'0.78rem', color:'#94A3B8', lineHeight:1.7 }}>
-                  I confirm all information provided is true and accurate. I consent to Haraka Transport Ltd processing my personal data for recruitment purposes.
+            <div className="hk-note">
+              <label className="hk-check">
+                <input type="checkbox" {...register('declaration',{required:'You must confirm this declaration'})} />
+                <span>
+                  I confirm all information provided is true and accurate. I consent to {COMPANY.legalName} processing my personal data for recruitment purposes.
                 </span>
               </label>
-              {errors.declaration && <p className="field-error">{errors.declaration.message}</p>}
+              {errors.declaration && <p className="hk-error" style={{ marginTop: '8px' }}>{errors.declaration.message}</p>}
             </div>
 
-            {error && (
-              <div style={{ background:'rgba(248,113,113,0.1)', border:'1px solid rgba(248,113,113,0.3)', borderRadius:'8px', padding:'14px', color:'#F87171', fontSize:'0.875rem' }}>
-                ⚠ {error}
-              </div>
-            )}
+            {error && <div className="hk-alert" role="alert">{error}</div>}
 
-            <button type="submit" className="btn-primary"
-              style={{ fontSize:'1rem', padding:'18px', opacity:submitting?0.6:1, width:'100%' }}
+            <button type="submit" className="hk-btn hk-btn--primary hk-btn--lg hk-btn--block"
               disabled={submitting||!selectedRole}>
-              {submitting ? 'Submitting…' : 'Submit Application →'}
+              {submitting ? 'Submitting…' : 'Submit application'}
             </button>
 
             {!selectedRole && (
-              <p style={{ textAlign:'center', fontSize:'0.8rem', color:'#94A3B8' }}>
-                ⬆ Please select a role at the top before submitting
-              </p>
+              <p className="hk-small">Please select a role at the top before submitting.</p>
             )}
           </form>
         </div>
 
-        <div style={{ display:'flex', justifyContent:'center', marginTop:'20px' }}>
-          <button className="btn-outline" onClick={() => navigate('/')} style={{ fontSize:'0.85rem' }}>
-            Back to Homepage
+        <div style={{ marginTop: '24px' }}>
+          <button type="button" className="hk-btn hk-btn--secondary" onClick={() => navigate('/')}>
+            Back to homepage
           </button>
         </div>
       </div>
-    </div>
+    </main>
   )
 }

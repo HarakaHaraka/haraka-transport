@@ -88,7 +88,7 @@ function complianceFooterHtml() {
     : COMPANY.operatorLicencePendingText
   return `
     <div style="margin-top:24px;padding-top:16px;border-top:1px solid #ddd;color:#888;font-size:11px;line-height:1.7">
-      <p><strong>${COMPANY.legalName}</strong> · Licensed by Transport for London</p>
+      <p><strong>${COMPANY.legalName}</strong>${COMPANY.operatorLicenceNumber ? ' · Licensed by Transport for London' : ''}</p>
       <p>${licenceLine}</p>
       <p>Registered office: ${COMPANY.registeredOffice} · Company number: ${COMPANY.companyNumber}</p>
       <p>ICO registration: ${COMPANY.icoRegistration}</p>
@@ -125,7 +125,7 @@ function buildEmailText(payload) {
     `Vehicle: ${payload.vehicleColour || ''} ${payload.vehicleMake} ${payload.vehicleModel} — ${payload.vehicleRegistrationMark}`,
     `Questions during your journey: call ${payload.operatorContactPhone}.`,
     '',
-    COMPANY.legalName + ' · Licensed by Transport for London',
+    COMPANY.legalName + (COMPANY.operatorLicenceNumber ? ' · Licensed by Transport for London' : ''),
     COMPANY.operatorLicenceNumber ? `Operator licence: ${COMPANY.operatorLicenceNumber}` : COMPANY.operatorLicencePendingText,
   ].filter(Boolean).join('\n')
 }

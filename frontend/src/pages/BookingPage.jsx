@@ -1,36 +1,10 @@
 import { useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
-
-/* ─── shared styles ─────────────────────────────────────────── */
-const card = {
-  background: 'rgba(255,255,255,0.03)',
-  border: '1px solid rgba(168,85,247,0.15)',
-  borderRadius: '16px',
-  padding: '28px',
-  marginBottom: '20px',
-}
-const labelStyle = {
-  display: 'block',
-  fontSize: '0.8rem',
-  fontWeight: 600,
-  color: 'rgba(255,255,255,0.6)',
-  marginBottom: '6px',
-  textTransform: 'uppercase',
-  letterSpacing: '0.05em',
-}
-const inputStyle = {
-  width: '100%',
-  background: 'rgba(255,255,255,0.05)',
-  border: '1px solid rgba(168,85,247,0.25)',
-  borderRadius: '8px',
-  padding: '12px 14px',
-  color: '#fff',
-  fontSize: '0.9rem',
-  outline: 'none',
-  boxSizing: 'border-box',
-}
-const errStyle = { color: '#F87171', fontSize: '0.78rem', marginTop: '4px' }
+import { ArrowLeft, ArrowRight } from 'lucide-react'
+import { COMPANY } from '../config/company'
+import PageHead from '../components/PageHead'
+import CallUs from '../components/CallUs'
 
 const SERVICE_TYPES = [
   'Airport Transfer',
@@ -43,129 +17,136 @@ const SERVICE_TYPES = [
 ]
 
 /* ─── Step 1 — Journey Details ───────────────────────────────── */
-function Step1({ onNext, defaultService }) {
+function Step1({ onNext, defaults }) {
   const { register, handleSubmit, formState: { errors } } = useForm({
-    defaultValues: { serviceType: defaultService }
+    defaultValues: defaults,
   })
 
   return (
-    <form onSubmit={handleSubmit(onNext)}>
-      <div style={card}>
-        <h2 style={{ color: '#fff', marginTop: 0, marginBottom: '20px', fontSize: '1.2rem' }}>
-          Journey Details
-        </h2>
+    <form onSubmit={handleSubmit(onNext)} noValidate>
+      <div className="hk-form">
+        <h2 className="hk-form__title">Journey details</h2>
 
-        <div style={{ marginBottom: '16px' }}>
-          <label style={labelStyle} htmlFor="bk-serviceType">Service Type *</label>
+        <div className="hk-fieldset">
+          <label className="hk-label" htmlFor="bk-serviceType">Service type *</label>
           <select
             id="bk-serviceType"
-            style={{ ...inputStyle, cursor: 'pointer' }}
+            className="hk-input"
+            aria-invalid={!!errors.serviceType}
             {...register('serviceType', { required: 'Please select a service type' })}
           >
             <option value="">— Select —</option>
             {SERVICE_TYPES.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
-          {errors.serviceType && <p style={errStyle}>{errors.serviceType.message}</p>}
+          {errors.serviceType && <p className="hk-error">{errors.serviceType.message}</p>}
         </div>
 
-        <div style={{ marginBottom: '16px' }}>
-          <label style={labelStyle} htmlFor="bk-pickupAddress">Pickup Address *</label>
+        <div className="hk-fieldset">
+          <label className="hk-label" htmlFor="bk-pickupAddress">Pick-up address *</label>
           <input
             id="bk-pickupAddress"
-            style={inputStyle}
-            placeholder="Full pickup address"
+            className="hk-input"
+            placeholder="Full pick-up address"
+            aria-invalid={!!errors.pickupAddress}
             {...register('pickupAddress', { required: 'Pickup address is required' })}
           />
-          {errors.pickupAddress && <p style={errStyle}>{errors.pickupAddress.message}</p>}
+          {errors.pickupAddress && <p className="hk-error">{errors.pickupAddress.message}</p>}
         </div>
 
-        <div style={{ marginBottom: '16px' }}>
-          <label style={labelStyle} htmlFor="bk-dropoffAddress">Drop-off Address *</label>
+        <div className="hk-fieldset">
+          <label className="hk-label" htmlFor="bk-dropoffAddress">Drop-off address *</label>
           <input
             id="bk-dropoffAddress"
-            style={inputStyle}
+            className="hk-input"
             placeholder="Full destination address"
+            aria-invalid={!!errors.dropoffAddress}
             {...register('dropoffAddress', { required: 'Drop-off address is required' })}
           />
-          {errors.dropoffAddress && <p style={errStyle}>{errors.dropoffAddress.message}</p>}
+          {errors.dropoffAddress && <p className="hk-error">{errors.dropoffAddress.message}</p>}
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
-          <div>
-            <label style={labelStyle} htmlFor="bk-pickupDate">Date *</label>
+        <div className="hk-form__row">
+          <div className="hk-fieldset">
+            <label className="hk-label" htmlFor="bk-pickupDate">Date *</label>
             <input
               id="bk-pickupDate"
               type="date"
-              style={inputStyle}
+              className="hk-input"
+              aria-invalid={!!errors.pickupDate}
               {...register('pickupDate', { required: 'Date is required' })}
             />
-            {errors.pickupDate && <p style={errStyle}>{errors.pickupDate.message}</p>}
+            {errors.pickupDate && <p className="hk-error">{errors.pickupDate.message}</p>}
           </div>
-          <div>
-            <label style={labelStyle} htmlFor="bk-pickupTime">Time *</label>
+          <div className="hk-fieldset">
+            <label className="hk-label" htmlFor="bk-pickupTime">Time *</label>
             <input
               id="bk-pickupTime"
               type="time"
-              style={inputStyle}
+              className="hk-input"
+              aria-invalid={!!errors.pickupTime}
               {...register('pickupTime', { required: 'Time is required' })}
             />
-            {errors.pickupTime && <p style={errStyle}>{errors.pickupTime.message}</p>}
+            {errors.pickupTime && <p className="hk-error">{errors.pickupTime.message}</p>}
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
-          <div>
-            <label style={labelStyle} htmlFor="bk-passengers">Passengers *</label>
+        <div className="hk-form__row">
+          <div className="hk-fieldset">
+            <label className="hk-label" htmlFor="bk-passengers">Passengers *</label>
             <input
               id="bk-passengers"
               type="number" min="1" max="16"
-              style={inputStyle}
+              className="hk-input"
               placeholder="1"
+              aria-invalid={!!errors.passengers}
               {...register('passengers', {
                 required: 'Required',
                 min: { value: 1, message: 'At least 1' },
                 max: { value: 16, message: 'Max 16' },
               })}
             />
-            {errors.passengers && <p style={errStyle}>{errors.passengers.message}</p>}
+            {errors.passengers && <p className="hk-error">{errors.passengers.message}</p>}
           </div>
-          <div>
-            <label style={labelStyle} htmlFor="bk-luggage">Luggage Items</label>
+          <div className="hk-fieldset">
+            <label className="hk-label" htmlFor="bk-luggage">Luggage items</label>
             <input
               id="bk-luggage"
               type="number" min="0"
-              style={inputStyle}
+              className="hk-input"
               placeholder="0"
               {...register('luggage')}
             />
           </div>
         </div>
 
-        <div style={{ marginBottom: '16px' }}>
-          <label style={labelStyle} htmlFor="bk-flightNumber">Flight Number (if airport)</label>
+        <div className="hk-fieldset">
+          <label className="hk-label" htmlFor="bk-flightNumber">Flight number (if airport)</label>
           <input
             id="bk-flightNumber"
-            style={inputStyle}
+            className="hk-input"
             placeholder="e.g. BA0123"
             {...register('flightNumber')}
           />
         </div>
 
-        <div>
-          <label style={labelStyle} htmlFor="bk-specialRequirements">Special Requirements</label>
+        <div className="hk-fieldset">
+          <label className="hk-label" htmlFor="bk-specialRequirements">Special requirements</label>
           <textarea
             id="bk-specialRequirements"
             rows={3}
-            style={{ ...inputStyle, resize: 'vertical' }}
+            className="hk-input"
             placeholder="Wheelchair access, child seats, meet & greet…"
             {...register('specialRequirements')}
           />
         </div>
       </div>
 
-      <button className="btn-primary" type="submit" style={{ width: '100%' }}>
-        Next — Your Details →
-      </button>
+      <div className="hk-form__actions" style={{ gridTemplateColumns: '1fr' }}>
+        <button className="hk-btn hk-btn--primary hk-btn--lg hk-btn--split" type="submit">
+          Next: your details
+          <ArrowRight size={18} strokeWidth={2} aria-hidden="true" />
+        </button>
+      </div>
     </form>
   )
 }
@@ -175,65 +156,69 @@ function Step2({ onNext, onBack }) {
   const { register, handleSubmit, formState: { errors } } = useForm()
 
   return (
-    <form onSubmit={handleSubmit(onNext)}>
-      <div style={card}>
-        <h2 style={{ color: '#fff', marginTop: 0, marginBottom: '20px', fontSize: '1.2rem' }}>
-          Your Details
-        </h2>
+    <form onSubmit={handleSubmit(onNext)} noValidate>
+      <div className="hk-form">
+        <h2 className="hk-form__title">Your details</h2>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
-          <div>
-            <label style={labelStyle} htmlFor="bk-firstName">First Name *</label>
+        <div className="hk-form__row">
+          <div className="hk-fieldset">
+            <label className="hk-label" htmlFor="bk-firstName">First name *</label>
             <input
               id="bk-firstName"
-              style={inputStyle}
-              placeholder="Jane"
+              className="hk-input"
+              autoComplete="given-name"
+              aria-invalid={!!errors.firstName}
               {...register('firstName', { required: 'Required' })}
             />
-            {errors.firstName && <p style={errStyle}>{errors.firstName.message}</p>}
+            {errors.firstName && <p className="hk-error">{errors.firstName.message}</p>}
           </div>
-          <div>
-            <label style={labelStyle} htmlFor="bk-lastName">Last Name *</label>
+          <div className="hk-fieldset">
+            <label className="hk-label" htmlFor="bk-lastName">Last name *</label>
             <input
               id="bk-lastName"
-              style={inputStyle}
-              placeholder="Smith"
+              className="hk-input"
+              autoComplete="family-name"
+              aria-invalid={!!errors.lastName}
               {...register('lastName', { required: 'Required' })}
             />
-            {errors.lastName && <p style={errStyle}>{errors.lastName.message}</p>}
+            {errors.lastName && <p className="hk-error">{errors.lastName.message}</p>}
           </div>
         </div>
 
-        <div style={{ marginBottom: '16px' }}>
-          <label style={labelStyle} htmlFor="bk-email">Email Address *</label>
+        <div className="hk-fieldset">
+          <label className="hk-label" htmlFor="bk-email">Email address *</label>
           <input
             id="bk-email"
             type="email"
-            style={inputStyle}
-            placeholder="jane@example.com"
+            className="hk-input"
+            autoComplete="email"
+            placeholder="name@example.com"
+            aria-invalid={!!errors.email}
             {...register('email', {
               required: 'Email is required',
               pattern: { value: /^\S+@\S+\.\S+$/, message: 'Enter a valid email' },
             })}
           />
-          {errors.email && <p style={errStyle}>{errors.email.message}</p>}
+          {errors.email && <p className="hk-error">{errors.email.message}</p>}
         </div>
 
-        <div style={{ marginBottom: '16px' }}>
-          <label style={labelStyle} htmlFor="bk-phone">Phone Number *</label>
+        <div className="hk-fieldset">
+          <label className="hk-label" htmlFor="bk-phone">Phone number *</label>
           <input
             id="bk-phone"
             type="tel"
-            style={inputStyle}
-            placeholder="+44 7700 000000"
+            className="hk-input"
+            autoComplete="tel"
+            placeholder="07700 900000"
+            aria-invalid={!!errors.phone}
             {...register('phone', { required: 'Phone is required' })}
           />
-          {errors.phone && <p style={errStyle}>{errors.phone.message}</p>}
+          {errors.phone && <p className="hk-error">{errors.phone.message}</p>}
         </div>
 
-        <div>
-          <label style={labelStyle} htmlFor="bk-referralSource">How did you hear about us?</label>
-          <select id="bk-referralSource" style={{ ...inputStyle, cursor: 'pointer' }} {...register('referralSource')}>
+        <div className="hk-fieldset">
+          <label className="hk-label" htmlFor="bk-referralSource">How did you hear about us?</label>
+          <select id="bk-referralSource" className="hk-input" {...register('referralSource')}>
             <option value="">— Select (optional) —</option>
             {['Google', 'Social Media', 'Referral / Word of Mouth', 'Returning Customer', 'Other'].map(r =>
               <option key={r} value={r}>{r}</option>
@@ -242,23 +227,15 @@ function Step2({ onNext, onBack }) {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '12px' }}>
-        <button
-          type="button"
-          onClick={onBack}
-          style={{
-            background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.12)',
-            borderRadius: '10px',
-            color: '#fff',
-            padding: '14px',
-            cursor: 'pointer',
-            fontSize: '0.9rem',
-          }}
-        >
-          ← Back
+      <div className="hk-form__actions">
+        <button type="button" className="hk-btn hk-btn--secondary hk-btn--lg" onClick={onBack}>
+          <ArrowLeft size={18} strokeWidth={2} aria-hidden="true" />
+          Back
         </button>
-        <button className="btn-primary" type="submit">Review Booking →</button>
+        <button className="hk-btn hk-btn--primary hk-btn--lg hk-btn--split" type="submit">
+          Review booking
+          <ArrowRight size={18} strokeWidth={2} aria-hidden="true" />
+        </button>
       </div>
     </form>
   )
@@ -282,56 +259,43 @@ function Step3({ data, onBack, onConfirm, submitting }) {
 
   return (
     <div>
-      <div style={card}>
-        <h2 style={{ color: '#fff', marginTop: 0, marginBottom: '20px', fontSize: '1.2rem' }}>
-          Review Your Booking
-        </h2>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+      <div className="hk-form">
+        <h2 className="hk-form__title">Review your booking</h2>
+        <table className="hk-review">
           <tbody>
             {rows.map(([label, val]) => (
-              <tr key={label} style={{ borderBottom: '1px solid rgba(168,85,247,0.08)' }}>
-                <td style={{ padding: '10px 0', color: 'rgba(255,255,255,0.5)', fontSize: '0.82rem', width: '40%' }}>
-                  {label}
-                </td>
-                <td style={{ padding: '10px 0', color: '#fff', fontSize: '0.9rem', wordBreak: 'break-word' }}>
-                  {val}
-                </td>
+              <tr key={label}>
+                <th scope="row">{label}</th>
+                <td>{val}</td>
               </tr>
             ))}
           </tbody>
         </table>
-        <p style={{ fontSize: '0.8rem', color: '#94A3B8', marginTop: '18px', marginBottom: 0 }}>
+        <p className="hk-small">
           By submitting you agree to our{' '}
-          <a href="/terms" style={{ color: '#A855F7' }}>Terms & Conditions</a>.
-          We will contact you within 2 hours to confirm availability and pricing.
+          <a href="/terms" target="_blank" rel="noopener noreferrer">Terms & Conditions</a>.
+          We will contact you to confirm availability and pricing.
         </p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '12px' }}>
+      <div className="hk-form__actions">
         <button
           type="button"
+          className="hk-btn hk-btn--secondary hk-btn--lg"
           onClick={onBack}
           disabled={submitting}
-          style={{
-            background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.12)',
-            borderRadius: '10px',
-            color: '#fff',
-            padding: '14px',
-            cursor: 'pointer',
-            fontSize: '0.9rem',
-            opacity: submitting ? 0.5 : 1,
-          }}
         >
-          ← Back
+          <ArrowLeft size={18} strokeWidth={2} aria-hidden="true" />
+          Back
         </button>
         <button
-          className="btn-primary"
+          type="button"
+          className="hk-btn hk-btn--primary hk-btn--lg hk-btn--split"
           onClick={onConfirm}
           disabled={submitting}
-          style={{ opacity: submitting ? 0.6 : 1 }}
         >
-          {submitting ? 'Submitting…' : 'Confirm Booking →'}
+          {submitting ? 'Submitting…' : 'Confirm booking'}
+          <ArrowRight size={18} strokeWidth={2} aria-hidden="true" />
         </button>
       </div>
     </div>
@@ -340,36 +304,39 @@ function Step3({ data, onBack, onConfirm, submitting }) {
 
 /* ─── Step indicator ─────────────────────────────────────────── */
 function StepBar({ current }) {
-  const steps = ['Journey', 'Your Details', 'Review']
+  const steps = ['Journey', 'Your details', 'Review']
   return (
-    <div style={{ display: 'flex', gap: '8px', marginBottom: '28px' }}>
+    <ol className="hk-steps">
       {steps.map((label, i) => (
-        <div key={label} style={{ flex: 1, textAlign: 'center' }}>
-          <div style={{
-            height: '4px',
-            borderRadius: '2px',
-            background: i <= current ? '#A855F7' : 'rgba(255,255,255,0.1)',
-            marginBottom: '6px',
-            transition: 'background 0.3s',
-          }} />
-          <span style={{
-            fontSize: '0.72rem',
-            color: i === current ? '#A855F7' : i < current ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.25)',
-            fontWeight: i === current ? 700 : 400,
-          }}>
-            {label}
-          </span>
-        </div>
+        <li
+          key={label}
+          className={`hk-step${i === current ? ' is-on' : i < current ? ' is-done' : ''}`}
+          aria-current={i === current ? 'step' : undefined}
+        >
+          {String(i + 1).padStart(2, '0')} {label}
+        </li>
       ))}
-    </div>
+    </ol>
   )
 }
 
 /* ─── Main BookingPage ───────────────────────────────────────── */
 export default function BookingPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const [searchParams] = useSearchParams()
-  const defaultService = searchParams.get('service') || ''
+
+  // Service type comes from the URL (?service=). Anything typed into the
+  // homepage booking panel arrives in router state and fills Step 1.
+  const prefill = location.state?.prefill || {}
+  const step1Defaults = {
+    serviceType:         searchParams.get('service') || prefill.serviceType || '',
+    pickupAddress:       prefill.pickupAddress || '',
+    dropoffAddress:      prefill.dropoffAddress || '',
+    pickupDate:          prefill.pickupDate || '',
+    flightNumber:        prefill.flightNumber || '',
+    specialRequirements: prefill.flightNumber ? '' : (prefill.notes || ''),
+  }
 
   const [step, setStep]       = useState(0)
   const [formData, setFormData] = useState({})
@@ -426,65 +393,32 @@ export default function BookingPage() {
       navigate('/confirm', { state: { id: result.id, name: formData.firstName, type: 'booking' } })
 
     } catch (err) {
-      setError(err.message || 'Something went wrong — please try again or call us on +44 20 0000 0000.')
+      setError(err.message || `Something went wrong — please try again or call us on ${COMPANY.phone}.`)
       setSubmitting(false)
     }
   }
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: '#0F0A1E',
-      padding: '80px 16px 60px',
-      display: 'flex',
-      justifyContent: 'center',
-    }}>
-      <div style={{ width: '100%', maxWidth: '560px' }}>
+    <main className="hk-page">
+      <PageHead
+        label={COMPANY.operatorLicenceNumber ? 'TfL licensed private hire' : 'Pre-booked private hire'}
+        title="Book a journey"
+        intro="Tell us about your journey and we’ll confirm availability and pricing."
+      />
 
-        <div style={{ marginBottom: '28px' }}>
-          <div style={{
-            display: 'inline-block',
-            background: 'rgba(168,85,247,0.12)',
-            border: '1px solid rgba(168,85,247,0.3)',
-            borderRadius: '20px',
-            padding: '4px 14px',
-            fontSize: '0.75rem',
-            fontWeight: 600,
-            color: '#A855F7',
-            marginBottom: '12px',
-            textTransform: 'uppercase',
-            letterSpacing: '0.08em',
-          }}>
-            TFL Licensed
-          </div>
-          <h1 style={{ color: '#fff', margin: '0 0 6px', fontSize: 'clamp(1.4rem,4vw,2rem)' }}>
-            Book a Journey
-          </h1>
-          <p style={{ color: '#94A3B8', margin: 0, fontSize: '0.9rem' }}>
-            We'll confirm availability & pricing within 2 hours.
-          </p>
+      <div className="hk-body hk-split">
+        <div>
+          <StepBar current={step} />
+
+          {error && <div className="hk-alert" role="alert" style={{ marginBottom: '16px' }}>{error}</div>}
+
+          {step === 0 && <Step1 onNext={next} defaults={step1Defaults} />}
+          {step === 1 && <Step2 onNext={next} onBack={back} />}
+          {step === 2 && <Step3 data={formData} onBack={back} onConfirm={submit} submitting={submitting} />}
         </div>
 
-        <StepBar current={step} />
-
-        {error && (
-          <div style={{
-            background: 'rgba(248,113,113,0.1)',
-            border: '1px solid rgba(248,113,113,0.3)',
-            borderRadius: '10px',
-            padding: '12px 16px',
-            color: '#FCA5A5',
-            fontSize: '0.875rem',
-            marginBottom: '16px',
-          }}>
-            {error}
-          </div>
-        )}
-
-        {step === 0 && <Step1 onNext={next} defaultService={defaultService} />}
-        {step === 1 && <Step2 onNext={next} onBack={back} />}
-        {step === 2 && <Step3 data={formData} onBack={back} onConfirm={submit} submitting={submitting} />}
+        <CallUs />
       </div>
-    </div>
+    </main>
   )
 }

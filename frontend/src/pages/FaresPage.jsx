@@ -1,5 +1,5 @@
 import { COMPANY } from '../config/company'
-import { PolicyPage, PolicySection, Prose } from '../components/PolicyPage'
+import { PolicyPage, PolicySection, Prose, PolicyNote } from '../components/PolicyPage'
 import FaresTable from '../components/FaresTable'
 
 export default function FaresPage() {
@@ -31,12 +31,9 @@ export default function FaresPage() {
       </PolicySection>
 
       <PolicySection>
-        <div style={{
-          background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.3)',
-          borderRadius: '12px', padding: '16px 20px', color: '#86EFAC', fontSize: '0.9rem',
-        }}>
+        <PolicyNote strong>
           We do not use surge or dynamic pricing.
-        </div>
+        </PolicyNote>
       </PolicySection>
     </PolicyPage>
   )

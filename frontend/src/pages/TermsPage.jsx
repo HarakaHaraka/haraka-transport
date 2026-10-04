@@ -6,7 +6,7 @@ export default function TermsPage() {
   return (
     <PolicyPage title="Terms & Conditions" badge="Legal">
       <PolicySection heading="About these terms">
-        <Prose text={`These terms govern all bookings made with ${COMPANY.legalName}, a private hire operator licensed by Transport for London. By making a booking — by telephone, email, our website, or through a commissioning authority — you accept these terms. Registered in England & Wales, company number ${COMPANY.companyNumber}, registered office ${COMPANY.registeredOffice}.
+        <Prose text={`These terms govern all bookings made with ${COMPANY.legalName}${COMPANY.operatorLicenceNumber ? ', a private hire operator licensed by Transport for London' : ', which has applied to Transport for London for a private hire operator’s licence'}. By making a booking — by telephone, email, our website, or through a commissioning authority — you accept these terms. Registered in England & Wales, company number ${COMPANY.companyNumber}, registered office ${COMPANY.registeredOffice}.
 
 All journeys are pre-booked. We do not accept street hails or provide an on-demand service. We arrange journeys using Transport for London licensed private hire drivers and licensed private hire vehicles.`} />
         <p>{COMPANY.operatorLicenceNumber
@@ -75,7 +75,9 @@ All journeys are pre-booked. We do not accept street hails or provide an on-dema
       </PolicySection>
 
       <PolicySection heading="Liability">
-        <Prose text={`Nothing limits our liability for death or personal injury caused by negligence, for fraud, or for anything else that cannot lawfully be limited. Subject to that, our liability is limited to the price of the journey; we are not liable for indirect or consequential loss. We maintain public liability insurance with ${COMPANY.insurance.insurer} to a limit of ${COMPANY.insurance.publicLiability}, and employers' liability insurance to a limit of ${COMPANY.insurance.employersLiability}, and assign only drivers who hold valid motor insurance for hire and reward.`} />
+        <Prose text={`Nothing limits our liability for death or personal injury caused by negligence, for fraud, or for anything else that cannot lawfully be limited. Subject to that, our liability is limited to the price of the journey; we are not liable for indirect or consequential loss. ${COMPANY.insurance
+          ? `We maintain public liability insurance to a limit of ${COMPANY.insurance.publicLiability} and employers' liability insurance to a limit of ${COMPANY.insurance.employersLiability}. `
+          : ''}We assign only drivers who hold valid motor insurance for hire and reward.`} />
       </PolicySection>
 
       <PolicySection heading="Data protection">
