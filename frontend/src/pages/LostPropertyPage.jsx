@@ -1,5 +1,5 @@
 import { COMPANY } from '../config/company'
-import { PolicyPage, PolicySection, Prose, PolicyReference } from '../components/PolicyPage'
+import { PolicyPage, PolicySection, Prose, PolicyNote, PolicyReference } from '../components/PolicyPage'
 
 export default function LostPropertyPage() {
   return (
@@ -13,14 +13,11 @@ export default function LostPropertyPage() {
       </PolicySection>
 
       <PolicySection heading="Items a passenger depends on">
-        <div style={{
-          background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.3)',
-          borderRadius: '12px', padding: '18px 20px', color: '#FCD34D', fontSize: '0.92rem', lineHeight: 1.8,
-        }}>
+        <PolicyNote>
           Where the item is one the passenger depends on — a communication device, hearing aid, glasses, mobility aid,
           medication or medical alert equipment — we treat it as urgent, notify the parent or carer and school
           immediately, and arrange same-day return.
-        </div>
+        </PolicyNote>
       </PolicySection>
 
       <PolicyReference policyName="Lost Property Policy" reference="HTL-POL-16" />

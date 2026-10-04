@@ -18,11 +18,12 @@ export const COMPANY = {
   operatorLicenceNumber: null,
   operatorLicencePendingText:
     'Haraka Transport Limited has applied for a private hire vehicle operator’s licence from Transport for London. Our licence number will be published here as soon as it is issued. We do not accept bookings until our licence is granted.',
-  insurance: {
-    insurer: 'AXA',
-    publicLiability: '£5,000,000',
-    employersLiability: '£10,000,000',
-  },
+  // Liability cover shown in the Terms & Conditions. Leave as null until a
+  // policy is actually in force — the Terms page then prints no insurance
+  // limits at all. When cover is in place, replace null with e.g.
+  //   { publicLiability: '£10,000,000', employersLiability: '£10,000,000' }
+  // The insurer's name is never shown.
+  insurance: null,
   // No VAT registration. Do NOT render a VAT line at all. Do not print
   // "not VAT registered" anywhere.
   vatNumber: null,
@@ -31,7 +32,10 @@ export const COMPANY = {
   policyNextReview: '31 July 2027',
   dataProtectionLead: 'Zainab Husein',
   safeguardingLead: 'Zainab Husein',
-  operatingHours: 'Office hours: Monday–Friday, 9am–5:30pm. Booking phone line staffed 24/7.',
+  operatingHours: 'Office hours: Monday–Friday, 9am–5:30pm. Bookings line: 7am–8pm.',
+  // Hours the bookings phone line is answered. Shown in the utility strip,
+  // homepage hero, credentials strip and footer.
+  bookingsLineHours: '7am–8pm',
 };
 
 export default COMPANY;

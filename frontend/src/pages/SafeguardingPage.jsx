@@ -9,7 +9,7 @@ export default function SafeguardingPage() {
       intro="Safeguarding is the primary consideration in everything we do."
     >
       <PolicySection heading="Our standards">
-        <ul style={{ paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '10px', color: '#CBD5E1', fontSize: '0.92rem', lineHeight: 1.85 }}>
+        <ul style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <li>Every driver and passenger assistant assigned to carry a child or adult at risk holds a current enhanced DBS certificate with children's and adults' barred-list checks, verified before assignment and monitored for currency.</li>
           <li>Every driver holds a current TfL private hire driver licence; every vehicle holds a current TfL private hire vehicle licence, valid MOT and hire and reward insurance.</li>
           <li>Our Designated Safeguarding Lead is {COMPANY.safeguardingLead}, Director. A nominated deputy provides cover.</li>
@@ -17,7 +17,7 @@ export default function SafeguardingPage() {
       </PolicySection>
 
       <PolicySection heading="Safe operating standards">
-        <ul style={{ paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '10px', color: '#CBD5E1', fontSize: '0.92rem', lineHeight: 1.85 }}>
+        <ul style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <li>Only the commissioned passenger travels.</li>
           <li>A passenger is released only to a person named on the route plan.</li>
           <li>No personal contact details are exchanged and no social media connections made.</li>

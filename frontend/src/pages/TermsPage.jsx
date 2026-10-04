@@ -75,7 +75,9 @@ All journeys are pre-booked. We do not accept street hails or provide an on-dema
       </PolicySection>
 
       <PolicySection heading="Liability">
-        <Prose text={`Nothing limits our liability for death or personal injury caused by negligence, for fraud, or for anything else that cannot lawfully be limited. Subject to that, our liability is limited to the price of the journey; we are not liable for indirect or consequential loss. We maintain public liability insurance with ${COMPANY.insurance.insurer} to a limit of ${COMPANY.insurance.publicLiability}, and employers' liability insurance to a limit of ${COMPANY.insurance.employersLiability}, and assign only drivers who hold valid motor insurance for hire and reward.`} />
+        <Prose text={`Nothing limits our liability for death or personal injury caused by negligence, for fraud, or for anything else that cannot lawfully be limited. Subject to that, our liability is limited to the price of the journey; we are not liable for indirect or consequential loss. ${COMPANY.insurance
+          ? `We maintain public liability insurance to a limit of ${COMPANY.insurance.publicLiability} and employers' liability insurance to a limit of ${COMPANY.insurance.employersLiability}. `
+          : ''}We assign only drivers who hold valid motor insurance for hire and reward.`} />
       </PolicySection>
 
       <PolicySection heading="Data protection">
