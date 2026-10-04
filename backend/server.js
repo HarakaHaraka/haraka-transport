@@ -93,7 +93,7 @@ async function emailCustomer(booking, refId) {
             ${booking.pickupDate     ? `<tr><td style="padding:3px 12px 3px 0"><b>Date</b></td><td>${booking.pickupDate} ${booking.pickupTime || ''}</td></tr>` : ''}
           </table>
           <p>If anything is wrong, reply to this email or call us on 07849 549740.</p>
-          <p style="color:#888;font-size:12px">Haraka Transport Limited \u00b7 TfL Licensed Private Hire \u00b7 harakatransport.co.uk</p>`,
+          <p style="color:#888;font-size:12px">Haraka Transport Limited \u00b7 Pre-booked Private Hire \u00b7 harakatransport.co.uk</p>`,
       }),
     })
     console.log(`  ◆  Customer confirmation sent to ${booking.email}`)

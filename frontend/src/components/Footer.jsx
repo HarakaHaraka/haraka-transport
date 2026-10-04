@@ -40,7 +40,7 @@ export default function Footer() {
         <div>
           <p className="hk-footer__name">{COMPANY.legalName}</p>
           <p>Trading as: {COMPANY.tradingNames.join(' · ')}</p>
-          <p>Licensed by Transport for London</p>
+          {COMPANY.operatorLicenceNumber && <p>Licensed by Transport for London</p>}
           <p className="hk-footer__licence">{licenceLine}</p>
         </div>
         <div>

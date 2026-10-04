@@ -9,7 +9,7 @@ export const COMPANY = {
   registeredIn: 'England and Wales',
   registeredOffice: '181 Barcombe Avenue, London, SW2 3BH',
   tradingAddress: '181 Barcombe Avenue, London, SW2 3BH',
-  contactPerson: 'Zay Afrah',
+  contactPerson: 'Zainab H.',
   phone: '07849 549740',
   email: 'admin@harakatransport.co.uk',
   bookingsEmail: 'bookings@harakatransport.co.uk',

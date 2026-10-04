@@ -6,7 +6,7 @@ export default function TermsPage() {
   return (
     <PolicyPage title="Terms & Conditions" badge="Legal">
       <PolicySection heading="About these terms">
-        <Prose text={`These terms govern all bookings made with ${COMPANY.legalName}, a private hire operator licensed by Transport for London. By making a booking — by telephone, email, our website, or through a commissioning authority — you accept these terms. Registered in England & Wales, company number ${COMPANY.companyNumber}, registered office ${COMPANY.registeredOffice}.
+        <Prose text={`These terms govern all bookings made with ${COMPANY.legalName}${COMPANY.operatorLicenceNumber ? ', a private hire operator licensed by Transport for London' : ', which has applied to Transport for London for a private hire operator’s licence'}. By making a booking — by telephone, email, our website, or through a commissioning authority — you accept these terms. Registered in England & Wales, company number ${COMPANY.companyNumber}, registered office ${COMPANY.registeredOffice}.
 
 All journeys are pre-booked. We do not accept street hails or provide an on-demand service. We arrange journeys using Transport for London licensed private hire drivers and licensed private hire vehicles.`} />
         <p>{COMPANY.operatorLicenceNumber
